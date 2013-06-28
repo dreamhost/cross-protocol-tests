@@ -151,6 +151,7 @@ def test_list_container():
     # FIXME: remove bucket or teardown
 
 def test_delete_empty_bucket():
+    SwiftUtils.swift_delete_all_containers(swiftconn)
     # Create bucket using S3
     name = Utils.create_valid_name()
     bucket = s3conn.create_bucket(name)
@@ -168,6 +169,7 @@ def test_delete_non_empty_bucket():
     pass
 
 def test_delete_container():
+    SwiftUtils.swift_delete_all_containers(swiftconn)
     # Create bucket using Swift
     name = Utils.create_valid_name()
     swiftconn.put_container(name)
@@ -230,7 +232,7 @@ def test_size_object_in_container():
     f.seek(0)
     k.set_contents_from_file(f)
     # Checksum
-    eq(S3Utils.md5(s3conn, name, 'foobar'), SwiftUtils.md5(swiftconn, name, 'foobar'))
+    eq(S3Utils.md5(s3conn, name, 'foobar')[1:-1], SwiftUtils.md5(swiftconn, name, 'foobar'))
     # Size
     eq(k.size, SwiftUtils.size(swiftconn, name, 'foobar'))
 
@@ -246,7 +248,7 @@ def test_size_object_in_bucket():
     bucket = s3conn.get_bucket(name)
     k = Key(bucket, 'foobar')
     # Checksum
-    eq(S3Utils.md5(s3conn, name, 'foobar'), SwiftUtils.md5(swiftconn, name, 'foobar'))
+    eq(S3Utils.md5(s3conn, name, 'foobar')[1:-1], SwiftUtils.md5(swiftconn, name, 'foobar'))
     # Size
     eq(k.size, SwiftUtils.size(swiftconn, name, 'foobar'))
 
@@ -263,7 +265,7 @@ def test_checksum_object_in_container():
     f.seek(0)
     k.set_contents_from_file(f)
     # Checksum
-    eq(S3Utils.md5(s3conn, name, 'foobar'), SwiftUtils.md5(swiftconn, name, 'foobar'))
+    eq(S3Utils.md5(s3conn, name, 'foobar')[1:-1], SwiftUtils.md5(swiftconn, name, 'foobar'))
     # Size
     eq(k.size, SwiftUtils.size(swiftconn, name, 'foobar'))
 
@@ -279,7 +281,7 @@ def test_checksum_object_in_bucket():
     bucket = s3conn.get_bucket(name)
     k = Key(bucket, 'foobar')
     # Checksum
-    eq(S3Utils.md5(s3conn, name, 'foobar'), SwiftUtils.md5(swiftconn, name, 'foobar'))
+    eq(S3Utils.md5(s3conn, name, 'foobar')[1:-1], SwiftUtils.md5(swiftconn, name, 'foobar'))
     # Size
     eq(k.size, SwiftUtils.size(swiftconn, name, 'foobar'))
 
