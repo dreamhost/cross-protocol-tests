@@ -68,6 +68,14 @@ class SwiftUtils():
                 conn.delete_container(name)
             if not objects:
                 conn.delete_container(name)
+    @classmethod
+    def md5(self, conn, bucket, object_name):
+        return conn.head_object(bucket, object_name)['etag']
+    @classmethod
+    def size(self, conn, bucket, object_name):
+        return int(conn.head_object(bucket, object_name)['content-length'])
+
+
     # Not Needed...
     @classmethod
     def get_swift_auth(url):
@@ -150,7 +158,6 @@ def test_delete_bucket():
     assert_raises(boto.exception.S3ResponseError, s3conn.delete_bucket, name)
     assert_raises(swiftclient.ClientException, swiftconn.delete_container, name)
 
-    # FIXME: add assertRaise
     # Separate? Nonexisting and Non-empty
 
 def test_delete_container():
@@ -175,11 +182,13 @@ def test_create_existing_bucket():
     swiftconn.put_container(name)
     # FIXME: add assertRaise - try to create same bucket using S3
 
+
 def test_create_existing_container():
     # Create bucket using S3
     name = Utils.create_valid_name()
     bucket = s3conn.create_bucket(name)
     # FIXME: add assertRaise - try to create same container using Swift
+
 
 def test_create_object_in_bucket():
     # Create container using Swift
@@ -193,6 +202,50 @@ def test_create_object_in_bucket():
     # FIXME (check bucket)
 
 def test_create_object_in_container():
+    # Create bucket using S3
+    name = Utils.create_valid_name()
+    bucket = s3conn.create_bucket(name)
+    # Create object using Swift
+    swiftconn.put_object(name, 'foobar', 'Create object using Swift')
+    # FIXME (check bucket)
+
+def test_size_object_in_bucket():
+    # Create container using Swift
+    name = Utils.create_valid_name()
+    swiftconn.put_container(name)
+    # Create object using S3
+    bucket = s3conn.get_bucket(name)
+    k = Key(bucket)
+    k.key = 'foobar'
+    k.set_contents_from_string('Create object using S3')
+    # FIXME (check bucket)
+
+def test_size_object_in_container():
+    # Create bucket using S3
+    name = Utils.create_valid_name()
+    bucket = s3conn.create_bucket(name)
+    # Create object using Swift
+    swiftconn.put_object(name, 'foobar', 'Create object using Swift')
+    # FIXME (check bucket)
+
+def test_checksum_object_in_bucket():
+    # Create container using Swift
+    name = Utils.create_valid_name()
+    swiftconn.put_container(name)
+    # Create object using S3
+    bucket = s3conn.get_bucket(name)
+    k = Key(bucket)
+    k.key = 'foobar'
+    f = open("testfile.txt", "r+")
+    f.write("0" * 1000)
+    f.seek(0)
+    k.set_contents_from_file(f)
+    # Checksum
+    eq(k.md5, SwiftUtils.md5(swiftconn, name, 'foobar'))
+    # Size
+    eq(k.size, SwiftUtils.size(swiftconn, name, 'foobar'))
+
+def test_checksum_object_in_container():
     # Create bucket using S3
     name = Utils.create_valid_name()
     bucket = s3conn.create_bucket(name)
