@@ -144,7 +144,7 @@ def test_list_container():
     assert(name in S3Utils.list_containers(s3conn))
     # FIXME: remove bucket or teardown
 
-def test_delete_bucket():
+def test_delete_empty_bucket():
     # Create bucket using S3
     name = Utils.create_valid_name()
     bucket = s3conn.create_bucket(name)
@@ -158,7 +158,8 @@ def test_delete_bucket():
     assert_raises(boto.exception.S3ResponseError, s3conn.delete_bucket, name)
     assert_raises(swiftclient.ClientException, swiftconn.delete_container, name)
 
-    # Separate? Nonexisting and Non-empty
+def test_delete_non_empty_bucket():
+    pass
 
 def test_delete_container():
     # Create bucket using Swift
@@ -174,7 +175,8 @@ def test_delete_container():
     assert_raises(boto.exception.S3ResponseError, s3conn.delete_bucket, name)
     assert_raises(swiftclient.ClientException, swiftconn.delete_container, name)
 
-    # Separate? Nonexisting and Non-empty
+def test_delete_non_empty_container():
+    pass
 
 def test_create_existing_bucket():
     # Create container using Swift
@@ -209,26 +211,7 @@ def test_create_object_in_container():
     swiftconn.put_object(name, 'foobar', 'Create object using Swift')
     # FIXME (check bucket)
 
-def test_size_object_in_bucket():
-    # Create container using Swift
-    name = Utils.create_valid_name()
-    swiftconn.put_container(name)
-    # Create object using S3
-    bucket = s3conn.get_bucket(name)
-    k = Key(bucket)
-    k.key = 'foobar'
-    k.set_contents_from_string('Create object using S3')
-    # FIXME (check bucket)
-
 def test_size_object_in_container():
-    # Create bucket using S3
-    name = Utils.create_valid_name()
-    bucket = s3conn.create_bucket(name)
-    # Create object using Swift
-    swiftconn.put_object(name, 'foobar', 'Create object using Swift')
-    # FIXME (check bucket)
-
-def test_checksum_object_in_bucket():
     # Create container using Swift
     name = Utils.create_valid_name()
     swiftconn.put_container(name)
@@ -236,8 +219,8 @@ def test_checksum_object_in_bucket():
     bucket = s3conn.get_bucket(name)
     k = Key(bucket)
     k.key = 'foobar'
-    f = open("testfile.txt", "r+")
-    f.write("0" * 1000)
+    f = open("testfile.txt", "wb+")
+    f.write("0" * 500)
     f.seek(0)
     k.set_contents_from_file(f)
     # Checksum
@@ -245,10 +228,51 @@ def test_checksum_object_in_bucket():
     # Size
     eq(k.size, SwiftUtils.size(swiftconn, name, 'foobar'))
 
-def test_checksum_object_in_container():
+def test_size_object_in_bucket():
     # Create bucket using S3
     name = Utils.create_valid_name()
     bucket = s3conn.create_bucket(name)
     # Create object using Swift
-    swiftconn.put_object(name, 'foobar', 'Create object using Swift')
-    # FIXME (check bucket)
+    f = open("testfile.txt", "wb+")
+    f.write("0" * 500)
+    f.seek(0)
+    swiftconn.put_object(name, 'foobar', f)
+    bucket = s3conn.get_bucket(name)
+    k = Key(bucket, 'foobar')
+    # Checksum
+    eq(k.md5, SwiftUtils.md5(swiftconn, name, 'foobar'))
+    # Size
+    eq(k.size, SwiftUtils.size(swiftconn, name, 'foobar'))
+
+def test_checksum_object_in_container():
+    # Create container using Swift
+    name = Utils.create_valid_name()
+    swiftconn.put_container(name)
+    # Create object using S3
+    bucket = s3conn.get_bucket(name)
+    k = Key(bucket)
+    k.key = 'foobar'
+    f = open("testfile.txt", "wb+")
+    f.write("0" * 500)
+    f.seek(0)
+    k.set_contents_from_file(f)
+    # Checksum
+    eq(k.md5, SwiftUtils.md5(swiftconn, name, 'foobar'))
+    # Size
+    eq(k.size, SwiftUtils.size(swiftconn, name, 'foobar'))
+
+def test_checksum_object_in_bucket():
+    # Create bucket using S3
+    name = Utils.create_valid_name()
+    bucket = s3conn.create_bucket(name)
+    # Create object using Swift
+    f = open("testfile.txt", "wb+")
+    f.write("0" * 500)
+    f.seek(0)
+    swiftconn.put_object(name, 'foobar', f)
+    bucket = s3conn.get_bucket(name)
+    k = Key(bucket, 'foobar')
+    # Checksum
+    eq(k.md5, SwiftUtils.md5(swiftconn, name, 'foobar'))
+    # Size
+    eq(k.size, SwiftUtils.size(swiftconn, name, 'foobar'))
