@@ -98,6 +98,12 @@ class S3Utils():
         buckets = conn.get_all_buckets()
         list_of_buckets = [bucket.name for bucket in buckets]
         return list_of_buckets
+    @classmethod
+    def md5(self, conn, bucket, object_name):
+        resp = conn.make_request('HEAD', bucket, object_name)
+        for x in resp.getheaders():
+            if x[0]=='etag':
+                return x[1]
 class Utils:
     # 3-63 chars, must start/end with lowercase letter or number
     # can contain lowercase letters, numbers, and dashes (no periods)
@@ -224,7 +230,7 @@ def test_size_object_in_container():
     f.seek(0)
     k.set_contents_from_file(f)
     # Checksum
-    eq(k.md5, SwiftUtils.md5(swiftconn, name, 'foobar'))
+    eq(S3Utils.md5(s3conn, name, 'foobar'), SwiftUtils.md5(swiftconn, name, 'foobar'))
     # Size
     eq(k.size, SwiftUtils.size(swiftconn, name, 'foobar'))
 
@@ -240,7 +246,7 @@ def test_size_object_in_bucket():
     bucket = s3conn.get_bucket(name)
     k = Key(bucket, 'foobar')
     # Checksum
-    eq(k.md5, SwiftUtils.md5(swiftconn, name, 'foobar'))
+    eq(S3Utils.md5(s3conn, name, 'foobar'), SwiftUtils.md5(swiftconn, name, 'foobar'))
     # Size
     eq(k.size, SwiftUtils.size(swiftconn, name, 'foobar'))
 
@@ -257,7 +263,7 @@ def test_checksum_object_in_container():
     f.seek(0)
     k.set_contents_from_file(f)
     # Checksum
-    eq(k.md5, SwiftUtils.md5(swiftconn, name, 'foobar'))
+    eq(S3Utils.md5(s3conn, name, 'foobar'), SwiftUtils.md5(swiftconn, name, 'foobar'))
     # Size
     eq(k.size, SwiftUtils.size(swiftconn, name, 'foobar'))
 
@@ -273,6 +279,11 @@ def test_checksum_object_in_bucket():
     bucket = s3conn.get_bucket(name)
     k = Key(bucket, 'foobar')
     # Checksum
-    eq(k.md5, SwiftUtils.md5(swiftconn, name, 'foobar'))
+    eq(S3Utils.md5(s3conn, name, 'foobar'), SwiftUtils.md5(swiftconn, name, 'foobar'))
     # Size
     eq(k.size, SwiftUtils.size(swiftconn, name, 'foobar'))
+
+def list_permisions_s3():
+    pass
+def list_permisions_swift():
+    pass
