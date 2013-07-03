@@ -9,16 +9,16 @@ import random
 from nose.tools import eq_ as eq
 
 # url
-url = "objects.dreamhost.com"
+url = "api.alexandria.dhobjects.com"
 
 # S3 keys
-access_key = 'fs46-5HPyNCbQ_HIYUwO'
-secret_key = 'pz71sbAR4OK_OffU4BfZIpfFq5P0OFm68RgDRVg0'
+access_key = '0YeoPXYW6DEyr8hxAqxS'
+secret_key = 'pzVZbRaBCrLOAkxLDsOtP60Ju7envah-8vZAhhdI'
 
 # Swift keys
-username = 'kevinchoi:kevchoi'
-api_key = 'YGzYAnKmAeG6I9XatSVkGf0lAeUHH09NZiGMM30u'
-swifturl = 'http://objects.dreamhost.com/auth/v1.0'
+username = 'swiftpermissions:swiftperms'
+api_key = 'ibdAMms4kx4SAVzlyyZ3GxjQBjGVMsifB1KKtngZ'
+swifturl = 'http://api.alexandria.dhobjects.com/auth/v1.0'
 
 s3conn = boto.connect_s3(
     aws_access_key_id = access_key,
@@ -48,7 +48,7 @@ def assert_raises(excClass, callableObj, *args, **kwargs):
             excName = str(excClass)
         raise AssertionError("%s not raised" % excName)
 
-class SwiftUtils():
+class SwiftUtils:
     # Add Swift utilities
     @classmethod
     def list_containers(self, conn):
@@ -91,7 +91,7 @@ class SwiftUtils():
         return resp.getheader('x-storage-token', resp.getheader('x-auth-token'))
 
 
-class S3Utils():
+class S3Utils:
     # Add S3 utilities
     @classmethod
     def list_containers(self, conn):
@@ -162,8 +162,8 @@ def test_delete_empty_bucket():
     eq([], S3Utils.list_containers(s3conn))
     # Check if it's there
 
-    assert_raises(boto.exception.S3ResponseError, s3conn.delete_bucket, name)
-    assert_raises(swiftclient.ClientException, swiftconn.delete_container, name)
+    err = assert_raises(boto.exception.S3ResponseError, s3conn.delete_bucket, name)
+    err = assert_raises(swiftclient.ClientException, swiftconn.delete_container, name)
 
 def test_delete_non_empty_bucket():
     pass
@@ -245,8 +245,8 @@ def test_size_object_in_bucket():
     f.write("0" * 500)
     f.seek(0)
     swiftconn.put_object(name, 'foobar', f)
-    bucket = s3conn.get_bucket(name)
     k = Key(bucket, 'foobar')
+    k.open_read()
     # Checksum
     eq(S3Utils.md5(s3conn, name, 'foobar')[1:-1], SwiftUtils.md5(swiftconn, name, 'foobar'))
     # Size
@@ -264,7 +264,7 @@ def test_checksum_object_in_container():
     f.write("0" * 500)
     f.seek(0)
     k.set_contents_from_file(f)
-    # Checksum
+    # Checksum... check "" error
     eq(S3Utils.md5(s3conn, name, 'foobar')[1:-1], SwiftUtils.md5(swiftconn, name, 'foobar'))
     # Size
     eq(k.size, SwiftUtils.size(swiftconn, name, 'foobar'))
@@ -278,14 +278,9 @@ def test_checksum_object_in_bucket():
     f.write("0" * 500)
     f.seek(0)
     swiftconn.put_object(name, 'foobar', f)
-    bucket = s3conn.get_bucket(name)
     k = Key(bucket, 'foobar')
-    # Checksum
+    k.open_read()
+    # Checksum... check "" error
     eq(S3Utils.md5(s3conn, name, 'foobar')[1:-1], SwiftUtils.md5(swiftconn, name, 'foobar'))
     # Size
     eq(k.size, SwiftUtils.size(swiftconn, name, 'foobar'))
-
-def list_permisions_s3():
-    pass
-def list_permisions_swift():
-    pass

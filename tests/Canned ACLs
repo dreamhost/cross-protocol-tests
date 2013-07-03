@@ -1,0 +1,110 @@
+private
+<AccessControlPolicy xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+   <Owner>
+      <ID>swiftpermissions</ID>
+      <DisplayName>swiftpermissions</DisplayName>
+   </Owner>
+   <AccessControlList>
+      <Grant>
+         <Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="CanonicalUser">
+            <ID>swiftpermissions</ID>
+            <DisplayName>swiftpermissions</DisplayName>
+         </Grantee>
+         <Permission>FULL_CONTROL</Permission>
+      </Grant>
+   </AccessControlList>
+</AccessControlPolicy>
+
+
+public-read
+<AccessControlPolicy xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+   <Owner>
+      <ID>swiftpermissions</ID>
+      <DisplayName>swiftpermissions</DisplayName>
+   </Owner>
+   <AccessControlList>
+      <Grant>
+         <Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="Group">
+            <URI>http://acs.amazonaws.com/groups/global/AllUsers</URI>
+         </Grantee>
+         <Permission>READ</Permission>
+      </Grant>
+      <Grant>
+         <Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="CanonicalUser">
+            <ID>swiftpermissions</ID>
+            <DisplayName>swiftpermissions</DisplayName>
+         </Grantee>
+         <Permission>FULL_CONTROL</Permission>
+      </Grant>
+   </AccessControlList>
+</AccessControlPolicy>
+
+
+public-read-write
+<AccessControlPolicy xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+   <Owner>
+      <ID>swiftpermissions</ID>
+      <DisplayName>swiftpermissions</DisplayName>
+   </Owner>
+   <AccessControlList>
+      <Grant>
+         <Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="Group">
+            <URI>http://acs.amazonaws.com/groups/global/AllUsers</URI>
+         </Grantee>
+         <Permission>READ</Permission>
+      </Grant>
+      <Grant>
+         <Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="Group">
+            <URI>http://acs.amazonaws.com/groups/global/AllUsers</URI>
+         </Grantee>
+         <Permission>WRITE</Permission>
+      </Grant>
+      <Grant>
+         <Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="CanonicalUser">
+            <ID>swiftpermissions</ID>
+            <DisplayName>swiftpermissions</DisplayName>
+         </Grantee>
+         <Permission>FULL_CONTROL</Permission>
+      </Grant>
+   </AccessControlList>
+</AccessControlPolicy>
+
+
+authenticated-read
+<AccessControlPolicy xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+   <Owner>
+      <ID>swiftpermissions</ID>
+      <DisplayName>swiftpermissions</DisplayName>
+   </Owner>
+   <AccessControlList>
+      <Grant>
+         <Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="Group">
+            <URI>http://acs.amazonaws.com/groups/global/AuthenticatedUsers</URI>
+         </Grantee>
+         <Permission>READ</Permission>
+      </Grant>
+      <Grant>
+         <Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="CanonicalUser">
+            <ID>swiftpermissions</ID>
+            <DisplayName>swiftpermissions</DisplayName>
+         </Grantee>
+         <Permission>FULL_CONTROL</Permission>
+      </Grant>
+   </AccessControlList>
+</AccessControlPolicy>
+
+bucket = create using s3
+container = create using swift
+
+test_list_bucket (test empty then full)
+test_list_container (test empty then full)
+test_get_bucket (test nonexisting then existing)
+test_get_container (test nonexisting then existing)
+test_head_bucket
+test_head_container
+test_delete_bucket
+test_delete_container
+test_create_bucket (test nonexsting, existing, existing but not owned)
+test_create_container
+
+same with object: for create object, copy, nonexisting, existing
