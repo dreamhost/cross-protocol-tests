@@ -96,6 +96,12 @@ def s3_md5(s3conn, bucket, object_name):
         if x[0]=='etag':
             return x[1][1:-1]
 
+def s3_size(s3conn, bucket, object_name):
+    resp = s3conn.make_request('HEAD', bucket, object_name)
+    for x in resp.getheaders():
+        if x[0]=='content-length':
+            return x[1][1:-1]
+
 # 3-63 chars, must start/end with lowercase letter or number
 # can contain lowercase letters, numbers, and dashes (no periods)
 # cannot start/end with dash or period
@@ -293,6 +299,7 @@ def test_size_object_in_bucket():
     f.close()
     swiftconn.put_object(name, 'test', data)
     k = Key(bucket, 'test')
+    k.open_read()
     # Check size
     eq(k.size, swift_size(swiftconn, name, 'test'))
 
