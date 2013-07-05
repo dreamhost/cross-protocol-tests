@@ -1,0 +1,11 @@
+# Config
+
+s3:
+    aws_access_key_id: lYufVKa7DrBJGjMliOrB
+    aws_secret_access_key: JLfuUIvMMa7P3Kp0MxjOenNgZxWO1s020myDKssG
+    host: api.alexandria.dhobjects.com
+
+swift:
+    user: cross-protocol-test-user:swiftuser
+    key: aR-rOsThnCZYv8kbdQFC50D2QXpJ77gSyg3UCQlQ
+    authurl: http://api.alexandria.dhobjects.com/auth/v1.0

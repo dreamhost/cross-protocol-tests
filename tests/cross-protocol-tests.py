@@ -7,26 +7,25 @@ import swiftclient
 
 import random
 from nose.tools import eq_ as eq
+from tests import get_config
 
-from configobj import ConfigObj
 
+## IMPORT FROM CONFIG.YAML
 
-## IMPORT FROM CONFIG.INI
-
-conf = ConfigObj('config.ini')
+conf = get_config()
 s3keys = conf['s3']
 swiftkeys = conf['swift']
 
 s3conn = boto.connect_s3(
-    aws_access_key_id = s3keys['username'],
-    aws_secret_access_key = s3keys['key'],
-    host = s3keys['url'],
+    aws_access_key_id = s3keys['aws_access_key_id'],
+    aws_secret_access_key = s3keys['aws_secret_access_key'],
+    host = s3keys['host'],
     calling_format = boto.s3.connection.OrdinaryCallingFormat(),
     )
 
 swiftconn = swiftclient.Connection(
-    authurl = swiftkeys['url'],
-    user = swiftkeys['username'],
+    authurl = swiftkeys['authurl'],
+    user = swiftkeys['user'],
     key = swiftkeys['key']
     )
 
@@ -100,7 +99,7 @@ def s3_size(s3conn, bucket, object_name):
     resp = s3conn.make_request('HEAD', bucket, object_name)
     for x in resp.getheaders():
         if x[0]=='content-length':
-            return x[1][1:-1]
+            return x[1]
 
 # 3-63 chars, must start/end with lowercase letter or number
 # can contain lowercase letters, numbers, and dashes (no periods)

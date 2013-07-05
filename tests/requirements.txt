@@ -1,0 +1,6 @@
+#FIXME: ADD VER #s
+
+PyYAML
+boto >=2.95
+swiftclient
+nose
