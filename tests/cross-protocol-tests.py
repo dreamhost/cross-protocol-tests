@@ -42,6 +42,7 @@ swiftconn = swiftclient.Connection(
 
 ## HELPER FUNCTIONS
 
+# FROM https://github.com/ceph/s3-tests/blob/master/s3tests/functional/utils.py
 def assert_raises(excClass, callableObj, *args, **kwargs):
     """
     Like unittest.TestCase.assertRaises, but returns the exception.
