@@ -18,16 +18,16 @@ swiftkeys = conf['swift']
 
 # For more parameters:
 # https://github.com/boto/boto/blob/develop/boto/s3/connection.py
-s3conn = boto.s3.S3Connection(
+s3conn = boto.connect_s3(
     aws_access_key_id = s3keys['aws_access_key_id'],
     aws_secret_access_key = s3keys['aws_secret_access_key'],
     host = s3keys['host'],
-    is_secure=True,
-    port=None,
-    proxy=None,
-    proxy_port=None,
-    https_connection_factory=None,
-    calling_format = boto.s3.connection.OrdinaryCallingFormat(),
+    is_secure = True,
+    port = None,
+    proxy = None,
+    proxy_port = None,
+    https_connection_factory = None,
+    calling_format = boto.s3.connection.OrdinaryCallingFormat()
     )
 
 # For more parameters:
@@ -35,8 +35,8 @@ s3conn = boto.s3.S3Connection(
 swiftconn = swiftclient.Connection(
     authurl = swiftkeys['authurl'],
     user = swiftkeys['user'],
-    key = swiftkeys['key']
-    preauthurl=None
+    key = swiftkeys['key'],
+    preauthurl = None
     # NOTE TO SELF: Port, HTTPS/HTTP, etc. all contained in authurl/preauthurl
     )
 

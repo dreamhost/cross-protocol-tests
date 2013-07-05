@@ -7,9 +7,11 @@ def get_config():
     """
     Attempt to get a functional config dictionary.
     """
-    #config_file = os.environ.get('CROSS_PROTOCOL_TEST_CONFIG_FILE')
+    # config_file = os.environ.get('CROSS_PROTOCOL_TEST_CONFIG_FILE')
     try:
-        f = open('config.yaml')
+        __location__ = os.path.realpath(
+        os.path.join(os.getcwd(), os.path.dirname(__file__)))
+        f = open(os.path.join(__location__, 'config.yaml'))
         # use safe_load instead load
         conf = yaml.safe_load(f)
         f.close()
