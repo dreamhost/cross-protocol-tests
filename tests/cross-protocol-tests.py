@@ -7,8 +7,28 @@ import swiftclient
 
 import random
 from nose.tools import eq_ as eq
-from tests import get_config
 
+import yaml
+import sys
+import os
+
+## FROM https://github.com/ceph/swift/blob/master/test/__init__.py
+def get_config():
+    """
+    Attempt to get a functional config dictionary.
+    """
+    # config_file = os.environ.get('CROSS_PROTOCOL_TEST_CONFIG_FILE')
+    try:
+        # Get config.yaml in the same directory
+        __location__ = os.path.realpath(
+        os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
+        f = open(os.path.join(__location__, 'config.yaml'))
+        # use safe_load instead load
+        conf = yaml.safe_load(f)
+        f.close()
+    except IOError:
+        print >>sys.stderr, 'UNABLE TO READ FUNCTIONAL TESTS CONFIG FILE'
+    return conf
 
 ## IMPORT FROM CONFIG.YAML
 
@@ -145,6 +165,8 @@ def create_valid_name():
 ## BUCKET TESTS
 
 def test_list_buckets():
+    # Delete all buckets
+    s3_delete_all_buckets(s3conn)
     # Create bucket
     name = create_valid_name()
     bucket = s3conn.create_bucket(name)
@@ -155,6 +177,8 @@ def test_list_buckets():
     # FIXME: remove bucket or teardown?
 
 def test_list_container():
+    # Delete all buckets
+    s3_delete_all_buckets(s3conn)
     # Create container
     name = create_valid_name()
     swiftconn.put_container(name)
@@ -167,7 +191,7 @@ def test_list_empty_bucket():
     # Create bucket
     name = create_valid_name()
     bucket = s3conn.create_bucket(name)
-    # Get list of objects using Swift
+    # Get list of objects
     eq(swift_list_objects(swiftconn, name), [])
     eq(s3_list_objects(s3conn, name), [])
 
@@ -204,6 +228,8 @@ def test_list_nonempty_container():
 #test_head_container FIXME
 
 def test_delete_bucket():
+    # Delete all buckets
+    s3_delete_all_buckets(s3conn)
     # Create bucket
     name = create_valid_name()
     bucket = s3conn.create_bucket(name)
@@ -223,6 +249,8 @@ def test_delete_bucket():
     eq(s3_err.error_code, 'NoSuchBucket')
 
 def test_delete_container():
+    # Delete all buckets
+    s3_delete_all_buckets(s3conn)
     # Create bucket using Swift
     name = create_valid_name()
     swiftconn.put_container(name)
@@ -270,7 +298,6 @@ def test_delete_non_empty_container():
 ## OBJECT TESTS
 
 def test_list_object_in_bucket():
-    swift_delete_all_containers(swiftconn)
     # Create container using Swift
     name = create_valid_name()
     swiftconn.put_container(name)
@@ -284,7 +311,6 @@ def test_list_object_in_bucket():
     eq(s3_list_objects(s3conn, name), ['test'])
 
 def test_list_object_in_container():
-    swift_delete_all_containers(swiftconn)
     # Create bucket using S3
     name = create_valid_name()
     bucket = s3conn.create_bucket(name)
@@ -385,3 +411,48 @@ def test_delete_object_s3():
     # Check list of objects
     eq(s3_list_objects(s3conn, name), [])
     eq(swift_list_objects(swiftconn, name), [])
+
+def test_copy_swift_object():
+    # Create buckets
+    name = create_valid_name()
+    bucket = s3conn.create_bucket(name)
+    name2 = create_valid_name()
+    bucket2 = s3conn.create_bucket(name2)
+    # Create object using S3
+    bucket = s3conn.get_bucket(name)
+    k = Key(bucket)
+    k.key = 'test'
+    f = open('/dev/urandom', 'r')
+    data = f.read(random.randint(1,30000))
+    f.close()
+    k.set_contents_from_string(data)
+    # Copy object using Swift
+    swiftconn.put_object(container=name2,obj='test',contents=None,headers={'x-copy-from':name+'/'+'test'})
+    # Check list of objects
+    eq(s3_list_objects(s3conn, name2), ['test'])
+    eq(swift_list_objects(swiftconn, name2), ['test'])
+    # Checksum
+    eq(s3_md5(s3conn, name, 'test'), s3_md5(s3conn, name2, 'test'))
+    # Check size
+    eq(s3_size(s3conn, name, 'test'), s3_size(s3conn, name2, 'test'))
+def test_copy_s3_object():
+    # Create containers
+    name = create_valid_name()
+    swiftconn.put_container(name)
+    name2 = create_valid_name()
+    swiftconn.put_container(name2)
+    # Create object using Swift
+    f = open('/dev/urandom', 'r')
+    data = f.read(random.randint(1,30000))
+    f.close()
+    swiftconn.put_object(name, 'test', data)
+    # Copy object using S3
+    bucket = s3conn.get_bucket(name2)
+    bucket.copy_key('test', name, 'test')
+    # Check list of objects
+    eq(s3_list_objects(s3conn, name2), ['test'])
+    eq(swift_list_objects(swiftconn, name2), ['test'])
+    # Checksum
+    eq(s3_md5(s3conn, name, 'test'), s3_md5(s3conn, name2, 'test'))
+    # Check size
+    eq(s3_size(s3conn, name, 'test'), s3_size(s3conn, name2, 'test'))

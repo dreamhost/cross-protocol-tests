@@ -7,30 +7,36 @@ import swiftclient
 
 import os.path
 import sys
+from tests import get_config
 
-# url
-url = "api.alexandria.dhobjects.com"
+## IMPORT FROM CONFIG.YAML
 
-# S3 keys
-access_key = 'KYN7aKpS7FEVW5e_tgzA'
-secret_key = '_tzs-lDwMf-zv3fQmUqR-OjB8G1efsgHnKXm9gpX'
+conf = get_config()
+s3keys = conf['s3']
+swiftkeys = conf['swift']
 
-# Swift keys
-username = 'permissions:swiftuser'
-api_key = 'MJUrGGD8ZYCtdVXmOkr0YrlhAh-BwmJ8I3GrQSKS'
-swifturl = 'http://api.alexandria.dhobjects.com/auth/v1.0'
-
+# For more parameters:
+# https://github.com/boto/boto/blob/develop/boto/s3/connection.py
 s3conn = boto.connect_s3(
-    aws_access_key_id = access_key,
-    aws_secret_access_key = secret_key,
-    host = url,
-    calling_format = boto.s3.connection.OrdinaryCallingFormat(),
+    aws_access_key_id = s3keys['aws_access_key_id'],
+    aws_secret_access_key = s3keys['aws_secret_access_key'],
+    host = s3keys['host'],
+    is_secure = True,
+    port = None,
+    proxy = None,
+    proxy_port = None,
+    https_connection_factory = None,
+    calling_format = boto.s3.connection.OrdinaryCallingFormat()
     )
 
+# For more parameters:
+# https://github.com/openstack/python-swiftclient/blob/master/swiftclient/client.py
 swiftconn = swiftclient.Connection(
-    authurl = swifturl,
-    user = username,
-    key = api_key
+    authurl = swiftkeys['authurl'],
+    user = swiftkeys['user'],
+    key = swiftkeys['key'],
+    preauthurl = None
+    # NOTE TO SELF: Port, HTTPS/HTTP, etc. all contained in authurl/preauthurl
     )
 
 s3user = boto.connect_s3(
