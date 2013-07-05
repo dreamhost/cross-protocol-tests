@@ -1,8 +1,8 @@
-
 import yaml
 import sys
 import os
 
+## FROM https://github.com/ceph/swift/blob/master/test/__init__.py
 def get_config():
     """
     Attempt to get a functional config dictionary.
