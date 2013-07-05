@@ -9,6 +9,7 @@ def get_config():
     """
     # config_file = os.environ.get('CROSS_PROTOCOL_TEST_CONFIG_FILE')
     try:
+        # Get config.yaml in the same directory
         __location__ = os.path.realpath(
         os.path.join(os.getcwd(), os.path.dirname(__file__)))
         f = open(os.path.join(__location__, 'config.yaml'))

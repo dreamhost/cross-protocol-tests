@@ -59,18 +59,21 @@ def assert_raises(excClass, callableObj, *args, **kwargs):
         raise AssertionError("%s not raised" % excName)
 
 def swift_list_containers(swiftconn):
+    # Returns list of containers
     buckets = swiftconn.get_account()[1]
     list_of_buckets = [bucket_dictionary[u'name'] \
     for bucket_dictionary in buckets]
     return list_of_buckets
 
 def swift_list_objects(swiftconn, name):
+    # Returns list of objects in a container
     objects = swiftconn.get_container(name)[1]
     list_of_objects = [object_dictionary[u'name'] \
     for object_dictionary in objects]
     return list_of_objects
 
 def swift_delete_all_containers(swiftconn):
+    # Deletes all containers, both empty and nonempty
     for container in swift_list_containers(swiftconn):
         objects = swift_list_objects(swiftconn, container)
         for name in objects:
@@ -78,22 +81,27 @@ def swift_delete_all_containers(swiftconn):
         swiftconn.delete_container(container)
 
 def swift_md5(swiftconn, container, object_name):
+    # Returns object md5
     return swiftconn.head_object(container, object_name)['etag']
 
 def swift_size(swiftconn, container, object_name):
+    # Returns object content-length
     return int(swiftconn.head_object(container, object_name)['content-length'])
 
 def s3_list_buckets(s3conn):
+    # Returns list of buckets
     buckets = s3conn.get_all_buckets()
     list_of_buckets = [bucket.name for bucket in buckets]
     return list_of_buckets
 
 def s3_list_objects(s3conn, name):
+    # Returns list of objects in a bucket
     bucket = s3conn.get_bucket(name)
     list_of_objects = [obj.key for obj in bucket.list()]
     return list_of_objects
 
 def s3_delete_all_buckets(s3conn):
+    # Deletes all buckets, both empty and nonempty
     for name in s3_list_buckets(s3conn):
         bucket = s3conn.get_bucket(name)
         keys = bucket.list()
@@ -102,12 +110,14 @@ def s3_delete_all_buckets(s3conn):
         s3conn.delete_bucket(bucket)
 
 def s3_md5(s3conn, bucket, object_name):
+    # Returns object md5
     resp = s3conn.make_request('HEAD', bucket, object_name)
     for x in resp.getheaders():
         if x[0]=='etag':
             return x[1][1:-1]
 
 def s3_size(s3conn, bucket, object_name):
+    # Returns object size
     resp = s3conn.make_request('HEAD', bucket, object_name)
     for x in resp.getheaders():
         if x[0]=='content-length':
@@ -129,8 +139,7 @@ def create_valid_name():
             name+=random.choice(chr(random.randint(97,122))+'-')
     return name
 
-
-## Note: to reestablish connection, set up tests as classes
+## TODO: to reestablish connection, set up tests as classes
 ## and use instance variables
 
 ## BUCKET TESTS
