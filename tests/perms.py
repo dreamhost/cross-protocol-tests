@@ -1,13 +1,34 @@
 import boto
 import boto.s3.connection
+import boto.s3.acl
 import boto.s3
 from boto.s3.key import Key
+from boto.s3.acl import ACL, Policy
 
 import swiftclient
 
 import os.path
 import sys
-from tests import get_config
+import yaml
+
+## FROM https://github.com/ceph/swift/blob/master/test/__init__.py
+def get_config():
+    """
+    Attempt to get a functional config dictionary.
+    """
+    # config_file = os.environ.get('CROSS_PROTOCOL_TEST_CONFIG_FILE')
+    try:
+        # Get config.yaml in the same directory
+        __location__ = os.path.realpath(
+        os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
+        f = open(os.path.join(__location__, 'config.yaml'))
+        # use safe_load instead load
+        conf = yaml.safe_load(f)
+        f.close()
+    except IOError:
+        print >>sys.stderr, 'UNABLE TO READ FUNCTIONAL TESTS CONFIG FILE'
+    return conf
+
 
 ## IMPORT FROM CONFIG.YAML
 
@@ -38,7 +59,7 @@ swiftconn = swiftclient.Connection(
     preauthurl = None
     # NOTE TO SELF: Port, HTTPS/HTTP, etc. all contained in authurl/preauthurl
     )
-
+"""
 s3user = boto.connect_s3(
     aws_access_key_id = '6yE3REPZhNXemXmv7Rto',
     aws_secret_access_key = 'J2ZYmZzFRwYrAgc9-hZdVsRa8gqqJC1ZA0_gJI_U',
@@ -51,18 +72,18 @@ swiftuser = swiftclient.Connection(
     user = 'otheruser:swiftuser',
     key = 'lT6Avey7jvCldJzrmiaU-bmBTCUHe_gkIrQjl-ba'
     )
-
+"""
 def create_swift_containers(swiftconn):
     containers=[
     'swift-default',
-    'swift-publicread',
-    'swift-publicwrite',
-    'swift-publicreadwrite',
-    'swift-privateread',
-    'swift-privatewrite',
-    'swift-privatereadwrite',
-    'swift-publicreadprivatewrite',
-    'swift-privatereadpublicwrite'
+    'swift-public-read',
+    'swift-public-write',
+    'swift-public-read-write',
+    'swift-private-read',
+    'swift-private-write',
+    'swift-private-read-write',
+    'swift-public-read-private-write',
+    'swift-private-read-public-write'
     ]
     headers=[
     {},
@@ -82,8 +103,8 @@ def create_swift_containers(swiftconn):
         swiftconn.put_object(containers[i],'test.txt','test text here')
 
 def create_s3_buckets(s3conn):
-    containers=[
-    'as3-private',
+    buckets=[
+    'as3-default',
     'as3-public-read',
     'as3-public-read-write',
     'as3-authenticated-read'
@@ -94,7 +115,25 @@ def create_s3_buckets(s3conn):
     {'x-amz-acl':'public-read-write'},
     {'x-amz-acl':'authenticated-read'}
     ]
-    assert(len(containers)==len(headers))
+    assert(len(buckets)==len(headers))
+    for i in range(len(buckets)):
+        s3conn.make_request('PUT', buckets[i], headers=headers[i])
+        for i in range(len(buckets)):
+            s3conn.make_request('PUT', buckets[i], buckets[i]+'.txt', headers[i], 'test text here')
+
+    k = Key(bucket)
+    k.key = 'test'
+    k.set_contents_from_string('this is a test file')
+
+def create_s3_custom_buckets(s3conn):
+    containers=[
+    'as3-public-write',
+    'as3-private-read',
+    'as3-private-write',
+    'as3-private-read-write',
+    'as3-public-read-private-write',
+    'as3-private-read-public-write'
+    ]
     for i in range(len(containers)):
         s3conn.make_request('PUT', containers[i], headers=headers[i])
         s3conn.make_request('PUT', containers[i], 'test.txt', headers[i], data='test text here')
