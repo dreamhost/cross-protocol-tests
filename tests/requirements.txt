@@ -1,6 +1,6 @@
-#FIXME: ADD VER #s
+# Requirements
 
-PyYAML
-boto >=2.95
-swiftclient
-nose
+PyYAML==3.10
+boto==2.9.5
+nose==1.1.2
+-e git+https://github.com/openstack/python-swiftclient.git@b03843f3ac8bef30c9b7e0d436d8984d6d4146c2#egg=python_swiftclient-dev

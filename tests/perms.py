@@ -126,6 +126,7 @@ def create_s3_buckets(s3conn):
     k.set_contents_from_string('this is a test file')
 
 def create_s3_custom_buckets(s3conn):
+    # FIXME : MANUALLY UPLOAD ACLs
     containers=[
     'as3-public-write',
     'as3-private-read',
@@ -174,3 +175,33 @@ def add(s3conn):
         key = Key(bucket)
         key.key = 'sloth.gif'
         key.set_contents_from_filename(filepath)
+
+def test_s3_object_owner(s3conn, swiftconn):
+    swiftconn.put_container('swift-test-container-private-rw')
+    swiftconn.post_container('swift-test-container-private-rw', {'x-container-read':'otheruser', 'x-container-write':'otheruser'})
+    s3conn.make_request('PUT', 'swift-test-container-private-rw', 'test.txt', data='test text here')
+    print swiftconn.head_container('swift-test-container-private-rw')
+    resp = s3conn.make_request('GET', 'swift-test-container-private-rw', query_args='acl')
+    print resp.read()
+    resp = s3conn.make_request('GET', 'swift-test-container-private-rw', 'test.txt', query_args='acl')
+    print resp.read()
+
+def test_swift_object_owner(swiftconn, s3conn):
+    s3conn.make_request('PUT', 's3-test-container-public-rw', headers={'x-amz-acl':'public-read-write'})
+    s3conn.make_request('PUT', 's3-test-container-auth-r', headers={'x-amz-acl':'authenticated-read'})
+    swiftconn.put_object('s3-test-container-public-rw','test.txt','test text here')
+    swiftconn.put_object('s3-test-container-public-rw','test.txt','test text here')
+
+    print swiftconn.head_container('s3-test-container-public-rw')
+    resp = s3conn.make_request('GET', 's3-test-container-public-rw', query_args='acl')
+    print resp.read()
+    resp = s3conn.make_request('GET', 's3-test-container-public-rw', 'test.txt', query_args='acl')
+    print resp.read()
+
+    """
+    print swiftconn.head_container('swift-test-container-private-rw')
+    resp = s3conn.make_request('GET', 'swift-test-container-private-rw', query_args='acl')
+    print resp.read()
+    resp = s3conn.make_request('GET', 'swift-test-container-private-rw', 'test.txt', query_args='acl')
+    print resp.read()
+    """

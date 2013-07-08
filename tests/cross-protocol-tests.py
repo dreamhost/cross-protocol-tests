@@ -361,7 +361,7 @@ def test_checksum_object_in_container():
     data = f.read(random.randint(1,30000))
     f.close()
     k.set_contents_from_string(data)
-    # Checksum
+    # Check checksum
     eq(s3_md5(s3conn, name, 'test'), swift_md5(swiftconn, name, 'test'))
 
 def test_checksum_object_in_bucket():
@@ -374,7 +374,7 @@ def test_checksum_object_in_bucket():
     f.close()
     swiftconn.put_object(name, 'test', data)
     k = Key(bucket, 'test')
-    # Checksum
+    # Check checksum
     eq(s3_md5(s3conn, name, 'test'), swift_md5(swiftconn, name, 'test'))
 
 def test_delete_object_swift():
@@ -431,10 +431,11 @@ def test_copy_swift_object():
     # Check list of objects
     eq(s3_list_objects(s3conn, name2), ['test'])
     eq(swift_list_objects(swiftconn, name2), ['test'])
-    # Checksum
+    # Check checksum
     eq(s3_md5(s3conn, name, 'test'), s3_md5(s3conn, name2, 'test'))
     # Check size
     eq(s3_size(s3conn, name, 'test'), s3_size(s3conn, name2, 'test'))
+
 def test_copy_s3_object():
     # Create containers
     name = create_valid_name()
@@ -452,7 +453,7 @@ def test_copy_s3_object():
     # Check list of objects
     eq(s3_list_objects(s3conn, name2), ['test'])
     eq(swift_list_objects(swiftconn, name2), ['test'])
-    # Checksum
+    # Check checksum
     eq(s3_md5(s3conn, name, 'test'), s3_md5(s3conn, name2, 'test'))
     # Check size
     eq(s3_size(s3conn, name, 'test'), s3_size(s3conn, name2, 'test'))
