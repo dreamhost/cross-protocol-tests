@@ -1,11 +1,36 @@
 # Config
 
+# Some tests don't work on objects.dreamhost.com
+# All should work in alexandria
+# Keys on main user:
 s3:
-    aws_access_key_id: 
-    aws_secret_access_key: 
-    host: api.alexandria.dhobjects.com
-
+    aws_access_key_id: nXVJYzBvc3qppSM8wyq_
+    aws_secret_access_key: aS1W422mO7I4G9Mvo_5A3NmnhJPeUr1q8o0ippVL
+    host: objects.dreamhost.com
+    
 swift:
-    user: 
-    key: 
-    authurl: http://api.alexandria.dhobjects.com/auth/v1.0
+    user: broken:swiftuser
+    key: dCKs5pjIiPwH9LrZ-Bi3xfhqcGJm4Ft8D9pN4fHG
+    authurl: http://objects.dreamhost.com/auth/v1.0
+
+FIXMEs3:
+    aws_access_key_id: ywXWWc4R2A890U4iWGZ4
+    aws_secret_access_key: LWzB2ncauIrKbRV0qRvEfyMIJw0yioniK7ZMCGzZ
+    host: objects.dreamhost.com
+    
+FIXMEswift:
+    user: permissions-test:swiftuser
+    key: iTcox3unVFYmeyVHScb-Ls7vOKLVLE2Aqh0bhC7W
+    authurl: http://objects.dreamhost.com/auth/v1.0
+
+# Keys on other user:
+
+s3user:
+    aws_access_key_id: JD8iDySVZ2qwjPpzQAR1
+    aws_secret_access_key: kbZ8yeCEmKMstN5pdL2GGNDhRulUNY-VcaTaJ1bB
+    host: objects.dreamhost.com
+
+swiftuser:
+    user: user-test:swiftuser
+    key: NzXrQktRgwUWNLlMY_08n77fiLXI3R1c6WkSX_lR
+    authurl: http://objects.dreamhost.com/auth/v1.0

@@ -21,8 +21,9 @@ def get_config():
     try:
         # Get config.yaml in the same directory
         __location__ = os.path.realpath(
-        os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
-        f = open(os.path.join(__location__, 'config.yaml'))
+        os.path.join(os.getcwd(), os.path.dirname(__file__)))
+        config_file = os.path.join(__location__, 'config.yaml')
+        f = open(config_file)
         # use safe_load instead load
         conf = yaml.safe_load(f)
         f.close()

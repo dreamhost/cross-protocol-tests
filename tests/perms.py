@@ -29,50 +29,89 @@ def get_config():
         print >>sys.stderr, 'UNABLE TO READ FUNCTIONAL TESTS CONFIG FILE'
     return conf
 
-
 ## IMPORT FROM CONFIG.YAML
+def get_s3_main():
+    conf = get_config()
+    s3 = conf['s3']
+    # For more parameters:
+    # https://github.com/boto/boto/blob/develop/boto/s3/connection.py
+    s3conn = boto.connect_s3(
+        aws_access_key_id = s3['aws_access_key_id'],
+        aws_secret_access_key = s3['aws_secret_access_key'],
+        host = s3['host'],
+        is_secure = True,
+        port = None,
+        proxy = None,
+        proxy_port = None,
+        https_connection_factory = None,
+        calling_format = boto.s3.connection.OrdinaryCallingFormat()
+        )
+    return s3conn
 
-conf = get_config()
-s3keys = conf['s3']
-swiftkeys = conf['swift']
+def get_swift_main():
+    conf = get_config()
+    swift = conf['swift']
+    # For more parameters:
+    # https://github.com/openstack/python-swiftclient/blob/master/swiftclient/client.py
+    swiftconn = swiftclient.Connection(
+        authurl = swift['authurl'],
+        user = swift['user'],
+        key = swift['key'],
+        preauthurl = None
+        # NOTE TO SELF: Port, HTTPS/HTTP, etc. all contained in authurl/preauthurl
+        )
+    return swiftconn
 
-# For more parameters:
-# https://github.com/boto/boto/blob/develop/boto/s3/connection.py
-s3conn = boto.connect_s3(
-    aws_access_key_id = s3keys['aws_access_key_id'],
-    aws_secret_access_key = s3keys['aws_secret_access_key'],
-    host = s3keys['host'],
-    is_secure = True,
-    port = None,
-    proxy = None,
-    proxy_port = None,
-    https_connection_factory = None,
-    calling_format = boto.s3.connection.OrdinaryCallingFormat()
-    )
+def get_s3_user():
+    conf = get_config()
+    s3 = conf['s3user']
+    s3user = boto.connect_s3(
+        aws_access_key_id = s3['aws_access_key_id'],
+        aws_secret_access_key = s3['aws_secret_access_key'],
+        host = s3['host'],
+        is_secure = True,
+        port = None,
+        proxy = None,
+        proxy_port = None,
+        https_connection_factory = None,
+        calling_format = boto.s3.connection.OrdinaryCallingFormat()
+        )
+    return s3user
 
-# For more parameters:
-# https://github.com/openstack/python-swiftclient/blob/master/swiftclient/client.py
-swiftconn = swiftclient.Connection(
-    authurl = swiftkeys['authurl'],
-    user = swiftkeys['user'],
-    key = swiftkeys['key'],
-    preauthurl = None
-    # NOTE TO SELF: Port, HTTPS/HTTP, etc. all contained in authurl/preauthurl
-    )
-"""
-s3user = boto.connect_s3(
-    aws_access_key_id = '6yE3REPZhNXemXmv7Rto',
-    aws_secret_access_key = 'J2ZYmZzFRwYrAgc9-hZdVsRa8gqqJC1ZA0_gJI_U',
-    host = url,
-    calling_format = boto.s3.connection.OrdinaryCallingFormat(),
-    )
+def get_swift_user():
+    conf = get_config()
+    swift = conf['swiftuser']
+    # For more parameters:
+    # https://github.com/openstack/python-swiftclient/blob/master/swiftclient/client.py
+    swiftuser = swiftclient.Connection(
+        authurl = swift['authurl'],
+        user = swift['user'],
+        key = swift['key'],
+        preauthurl = None
+        # NOTE TO SELF: Port, HTTPS/HTTP, etc. all contained in authurl/preauthurl
+        )
+    return swiftuser
 
-swiftuser = swiftclient.Connection(
-    authurl = swifturl,
-    user = 'otheruser:swiftuser',
-    key = 'lT6Avey7jvCldJzrmiaU-bmBTCUHe_gkIrQjl-ba'
-    )
-"""
+s3conn = get_s3_main()
+swiftconn = get_swift_main()
+s3user = get_s3_user()
+swiftuser = get_swift_user()
+
+def assert_raises(excClass, callableObj, *args, **kwargs):
+    """
+    Like unittest.TestCase.assertRaises, but returns the exception.
+    """
+    try:
+        callableObj(*args, **kwargs)
+    except excClass as e:
+        return e
+    else:
+        if hasattr(excClass, '__name__'):
+            excName = excClass.__name__
+        else:
+            excName = str(excClass)
+        raise AssertionError("%s not raised" % excName)
+
 def create_swift_containers(swiftconn):
     containers=[
     'swift-default',
@@ -176,32 +215,118 @@ def add(s3conn):
         key.key = 'sloth.gif'
         key.set_contents_from_filename(filepath)
 
-def test_s3_object_owner(s3conn, swiftconn):
-    swiftconn.put_container('swift-test-container-private-rw')
-    swiftconn.post_container('swift-test-container-private-rw', {'x-container-read':'otheruser', 'x-container-write':'otheruser'})
-    s3conn.make_request('PUT', 'swift-test-container-private-rw', 'test.txt', data='test text here')
-    print swiftconn.head_container('swift-test-container-private-rw')
-    resp = s3conn.make_request('GET', 'swift-test-container-private-rw', query_args='acl')
+def test_s3_object_owner(s3conn, s3user, swiftconn, swiftuser, name):
+    print 'Name of the container is ' + name
+    swiftconn.put_container(name)
+    swiftconn.post_container(name, {'x-container-read':'user-test', 'x-container-write':'user-test'})
+    r=s3user.make_request('PUT', name, 'test.txt', data='test text here')
+    print r.status
+    print ''
+
+    print 'Swift container ACL(using main account):'
+    print swiftconn.head_container(name)
+    print ''
+
+    resp = s3conn.make_request('GET', name, query_args='acl')
+    print 'S3 container ACL (using main account):'
     print resp.read()
-    resp = s3conn.make_request('GET', 'swift-test-container-private-rw', 'test.txt', query_args='acl')
+    print ''
+
+    print 'Swift object ACL (using main account):'
+    try:
+        rdict={}
+        print swiftconn.get_object(name, 'test.txt', rdict)
+    except swiftclient.ClientException, e:
+        print rdict
+    print ''
+
+    resp = s3conn.make_request('GET', name, 'test.txt', query_args='acl')
+    print 'S3 object ACL (using main account):'
+    print resp.read()
+    print ''
+
+    print 'Now using second user:'
+    print 'Swift object ACL:'
+    print swiftuser.head_object(name, 'test.txt')
+    print ''
+
+    resp = s3user.make_request('GET', name, 'test.txt', query_args='acl')
+    print 'S3 object ACL:'
     print resp.read()
 
-def test_swift_object_owner(swiftconn, s3conn):
-    s3conn.make_request('PUT', 's3-test-container-public-rw', headers={'x-amz-acl':'public-read-write'})
-    s3conn.make_request('PUT', 's3-test-container-auth-r', headers={'x-amz-acl':'authenticated-read'})
-    swiftconn.put_object('s3-test-container-public-rw','test.txt','test text here')
-    swiftconn.put_object('s3-test-container-public-rw','test.txt','test text here')
+def test_swift_object_owner(s3conn, s3user, swiftconn, swiftuser, name):
+    print 'Name of the bucket is ' + name
+    s3conn.make_request('PUT', name)
+    b=s3conn.get_bucket(name)
+    b.add_user_grant('FULL_CONTROL', 'user-test')
+    swiftuser.put_object(name, 'test.txt', 'test text here')
+    print ''
 
-    print swiftconn.head_container('s3-test-container-public-rw')
-    resp = s3conn.make_request('GET', 's3-test-container-public-rw', query_args='acl')
+    print 'Swift container ACL(using main account):'
+    print swiftconn.head_container(name)
+    print ''
+
+    resp = s3conn.make_request('GET', name, query_args='acl')
+    print 'S3 container ACL (using main account):'
     print resp.read()
-    resp = s3conn.make_request('GET', 's3-test-container-public-rw', 'test.txt', query_args='acl')
+    print ''
+
+    print 'Swift object ACL (using main account):'
+    try:
+        rdict={}
+        print swiftconn.get_object(name, 'test.txt', rdict)
+    except swiftclient.ClientException, e:
+        print rdict
+    print ''
+
+    resp = s3conn.make_request('GET', name, 'test.txt', query_args='acl')
+    print 'S3 object ACL (using main account):'
+    print resp.read()
+    print ''
+
+    print 'Now using second user:'
+    print 'Swift object ACL:'
+    print swiftuser.head_object(name, 'test.txt')
+    print ''
+
+    resp = s3user.make_request('GET', name, 'test.txt', query_args='acl')
+    print 'S3 object ACL:'
     print resp.read()
 
-    """
-    print swiftconn.head_container('swift-test-container-private-rw')
-    resp = s3conn.make_request('GET', 'swift-test-container-private-rw', query_args='acl')
+def test_swift_container_object_owner(s3conn, s3user, swiftconn, swiftuser, name):
+    print 'Name of the container is ' + name
+    swiftconn.put_container(name)
+    swiftconn.post_container(name, {'x-container-read':'user-test', 'x-container-write':'user-test'})
+    swiftuser.put_object(name, 'test.txt', 'test text here')
+    print ''
+
+    print 'Swift container ACL(using main account):'
+    print swiftconn.head_container(name)
+    print ''
+
+    resp = s3conn.make_request('GET', name, query_args='acl')
+    print 'S3 container ACL (using main account):'
     print resp.read()
-    resp = s3conn.make_request('GET', 'swift-test-container-private-rw', 'test.txt', query_args='acl')
+    print ''
+
+    print 'Swift object ACL (using main account):'
+    try:
+        rdict={}
+        swiftconn.get_object(name, 'test.txt', rdict)
+    except swiftclient.ClientException, e:
+        print rdict
+    print ''
+
+    resp = s3conn.make_request('GET', name, 'test.txt', query_args='acl')
+    print 'S3 object ACL (using main account):'
     print resp.read()
-    """
+    print ''
+
+    print 'Now using second user:'
+    print 'Swift object ACL:'
+    print swiftuser.head_object(name, 'test.txt')
+    print ''
+
+    resp = s3user.make_request('GET', name, 'test.txt', query_args='acl')
+    print 'S3 object ACL:'
+    print resp.read()
