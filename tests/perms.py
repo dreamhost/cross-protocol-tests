@@ -3,7 +3,6 @@ import boto.s3.connection
 import boto.s3.acl
 import boto.s3
 from boto.s3.key import Key
-from boto.s3.acl import ACL, Policy
 
 import swiftclient
 
@@ -29,73 +28,66 @@ def get_config():
         print >>sys.stderr, 'UNABLE TO READ FUNCTIONAL TESTS CONFIG FILE'
     return conf
 
-## IMPORT FROM CONFIG.YAML
-def get_s3_main():
-    conf = get_config()
-    s3 = conf['s3']
-    # For more parameters:
-    # https://github.com/boto/boto/blob/develop/boto/s3/connection.py
-    s3conn = boto.connect_s3(
-        aws_access_key_id = s3['aws_access_key_id'],
-        aws_secret_access_key = s3['aws_secret_access_key'],
-        host = s3['host'],
+conf = get_config()
+s3keys = conf['s3']
+swiftkeys = conf['swift']
+s3userkeys = conf['s3user']
+swiftuserkeys = conf['swiftuser']
+
+## HELPER FUNCTIONS
+
+# For more parameters:
+# https://github.com/boto/boto/blob/develop/boto/s3/connection.py
+def get_s3conn():
+    return boto.connect_s3(
+        aws_access_key_id = s3keys['aws_access_key_id'],
+        aws_secret_access_key = s3keys['aws_secret_access_key'],
+        host = s3keys['host'],
         is_secure = True,
         port = None,
         proxy = None,
         proxy_port = None,
         https_connection_factory = None,
         calling_format = boto.s3.connection.OrdinaryCallingFormat()
-        )
-    return s3conn
+    )
 
-def get_swift_main():
-    conf = get_config()
-    swift = conf['swift']
-    # For more parameters:
-    # https://github.com/openstack/python-swiftclient/blob/master/swiftclient/client.py
-    swiftconn = swiftclient.Connection(
-        authurl = swift['authurl'],
-        user = swift['user'],
-        key = swift['key'],
+# For more parameters:
+# https://github.com/openstack/python-swiftclient/blob/master/swiftclient/client.py
+def get_swiftconn():
+    return swiftclient.Connection(
+        authurl = swiftkeys['authurl'],
+        user = swiftkeys['user'],
+        key = swiftkeys['key'],
         preauthurl = None
         # NOTE TO SELF: Port, HTTPS/HTTP, etc. all contained in authurl/preauthurl
-        )
-    return swiftconn
+    )
 
-def get_s3_user():
-    conf = get_config()
-    s3 = conf['s3user']
-    s3user = boto.connect_s3(
-        aws_access_key_id = s3['aws_access_key_id'],
-        aws_secret_access_key = s3['aws_secret_access_key'],
-        host = s3['host'],
+def get_s3user():
+    return boto.connect_s3(
+        aws_access_key_id = s3userkeys['aws_access_key_id'],
+        aws_secret_access_key = s3userkeys['aws_secret_access_key'],
+        host = s3userkeys['host'],
         is_secure = True,
         port = None,
         proxy = None,
         proxy_port = None,
         https_connection_factory = None,
         calling_format = boto.s3.connection.OrdinaryCallingFormat()
-        )
-    return s3user
+    )
 
-def get_swift_user():
-    conf = get_config()
-    swift = conf['swiftuser']
-    # For more parameters:
-    # https://github.com/openstack/python-swiftclient/blob/master/swiftclient/client.py
-    swiftuser = swiftclient.Connection(
-        authurl = swift['authurl'],
-        user = swift['user'],
-        key = swift['key'],
+def get_swiftuser():
+    return swiftclient.Connection(
+        authurl = swiftuserkeys['authurl'],
+        user = swiftuserkeys['user'],
+        key = swiftuserkeys['key'],
         preauthurl = None
         # NOTE TO SELF: Port, HTTPS/HTTP, etc. all contained in authurl/preauthurl
-        )
-    return swiftuser
-
-s3conn = get_s3_main()
-swiftconn = get_swift_main()
-s3user = get_s3_user()
-swiftuser = get_swift_user()
+    )
+    
+s3conn = get_s3conn()
+swiftconn = get_swiftconn()
+s3user = get_s3user()
+swiftuser = get_swiftuser()
 
 def assert_raises(excClass, callableObj, *args, **kwargs):
     """
@@ -330,3 +322,12 @@ def test_swift_container_object_owner(s3conn, s3user, swiftconn, swiftuser, name
     resp = s3user.make_request('GET', name, 'test.txt', query_args='acl')
     print 'S3 object ACL:'
     print resp.read()
+
+def test_swift_public_container_object_owner(s3conn, s3user, swiftconn, swiftuser, name):
+    print 'Name of the container is ' + name
+    swiftconn.put_container(name)
+    swiftconn.post_container(name, {'x-container-read':'.r:*', 'x-container-write':'.r:*'})
+    swiftuser.put_object(name, 'swifttest.txt', 'test text here')
+    r=s3user.make_request('PUT', name, 's3test.txt', data='test text here')
+    print r.status
+    print ''
