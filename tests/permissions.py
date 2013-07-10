@@ -117,26 +117,35 @@ def test_default_swift():
     s3_err = assert_raises(boto.exception.S3ResponseError, s3user.get_bucket, name)
     swift_err = assert_raises(swiftclient.ClientException, swiftuser.get_container, name)
 
-def swift_list_container_objects(swiftconn):
-    swift_err = assert_raises(swiftclient.ClientException, swiftconn.get_container, name)
+
+# USE A TRY CATCH HERE?
+
+def swift_list_container_objects(swiftconn, container):
+    swift_err = assert_raises(swiftclient.ClientException, swiftconn.get_container, container)
     if swift_err.http_status >= 400 or swift_err.http_status <= 500:
         return True
     else:
         return False
-    #eq(swift_err.http_reason, 'Not Found')
+    #eq(swift_err.http_reason, 'Authorization Required')
     #eq(swift_err.http_response_content, 'NoSuchBucket')
+    #eq(swift_err.status, 401)
 
-def s3_list_container_objects(s3conn):
-    s3_err = assert_raises(boto.exception.S3ResponseError, s3conn.get_bucket, name)
+def s3_list_container_objects(s3conn, bucket):
+    s3_err = assert_raises(boto.exception.S3ResponseError, s3conn.get_bucket, bucket)
     if s3_err.http_status >= 400 or swift_err.http_status <= 500:
         return True
     else:
         return False
+    #eq(s3_err.status, 403)
+    #eq(s3_err.reason, 'Forbidden')
+    #eq(s3_err.error_code, 'AccessDenied')
 
-def swift_get_object(swiftconn):
+def swift_get_object(swiftconn, container, filename):
+    swift_err = assert_raises(swiftclient.ClientException, swiftconn.get_object, container, filename)
     pass
 
-def s3_get_object(s3conn):
+def s3_get_object(s3conn, bucket, filename):
+    s3_err = assert_raises(boto.exception.S3ResponseError, s3user.make_request, 'GET', bucket, filename)
     pass
 
 def swift_delete_container(swiftconn):
