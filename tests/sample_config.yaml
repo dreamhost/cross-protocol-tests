@@ -1,0 +1,25 @@
+# Config
+
+# Keys on main user:
+
+s3:
+    aws_access_key_id: 
+    aws_secret_access_key: 
+    host: api.alexandria.dhobjects.com
+
+swift:
+    user: 
+    key: 
+    authurl: http://api.alexandria.dhobjects.com/auth/v1.0
+
+# Keys on other user:
+
+s3user:
+    aws_access_key_id: 
+    aws_secret_access_key: 
+    host: 
+
+swiftuser:
+    user: 
+    key: 
+    authurl: http://api.alexandria.dhobjects.com/auth/v1.0
