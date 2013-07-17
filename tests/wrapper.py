@@ -1,9 +1,9 @@
 import boto
+from boto.exception import S3ResponseError
 from boto.s3.connection import S3Connection
+from boto.s3.key import Key
 import boto.s3.acl
 import boto.s3
-from boto.s3.key import Key
-from boto.exception import S3ResponseError
 
 import swiftclient
 
@@ -199,6 +199,7 @@ class S3Conn(S3Connection):
         policy.acl.add_grant(grant)
         b.set_acl(policy)
         return b.get_acl()
+
 class SwiftConn(Connection):
     def list_containers(self):
         # Returns list of containers
@@ -236,3 +237,5 @@ def s3conn():
         https_connection_factory = None,
         calling_format = boto.s3.connection.OrdinaryCallingFormat()
     )
+def get_unauthuser():
+    return HTTPConn('objects.dreamhost.com')

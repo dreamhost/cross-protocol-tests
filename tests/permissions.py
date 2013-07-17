@@ -11,6 +11,7 @@ def create_swift_container_with_acl(acl_headers):
     return container
 def create_s3_container_with_acl(acl_headers):
     # Create S3 container
+    ### FIXME
     s3conn = get_s3conn()
     bucket = create_valid_name()
     s3conn.put_bucket(bucket)
@@ -24,10 +25,11 @@ def delete_all():
         for key in keys:
             key.delete()
         s3conn.delete_bucket(bucket)
-        
+
+### NOTE: Should test the main user's ability to delete/read objects that weren't created by it
 class TestPublicReadSwiftContainer:
     def setUp():
-        # Create a swift public read container
+        # Create a Swift public read container
         self.bucket = create_swift_container_with_acl({'x-container-read':'.r:*'})
     def tearDown():
         delete_all()
@@ -113,11 +115,10 @@ class TestPublicReadSwiftContainer:
         # Read object using unauthenticated user
         unauthuser = get_unauthuser()
         unauthuser.get_contents(self.bucket)
-    ### TEST ACLs??
-
+    ### TODO: TEST ACLs
 class TestPublicWriteSwiftContainer:
     def setUp():
-        # Create a swift public read container
+        # Create a Swift public write container
         self.bucket = create_swift_container_with_acl({'x-container-write':'.r:*'})
     def tearDown():
         delete_all()
@@ -156,6 +157,11 @@ class TestPublicWriteSwiftContainer:
         s3user.put_object(self.bucket,'test','test object')
         # Create S3 object with unauthenticated user
         unauthuser.put_object(self.bucket,'test','test object')
+
+        # Read with Swift
+        # Read with S3
+        # Delete with Swift
+        # Delete with S3
 
         ### Test again with unauthenticated user
     def test_default_s3_object():
@@ -221,7 +227,6 @@ class TestPublicWriteS3Bucket:
 
     ### SET S3 PERMISSIONS? DO LATER
     def test_default_swift_object():
-        
         # Create Swift object (main user)
         swiftconn = get_swiftconn()
         swiftconn.put_object(self.bucket,'test','test object')
@@ -256,6 +261,12 @@ class TestPublicWriteS3Bucket:
         s3user.put_object(self.bucket,'test','test object')
         # Create S3 object with unauthenticated user
         unauthuser.put_object(self.bucket,'test','test object')
+
+        ## MAIN USER
+        # Read with Swift
+        # Read with S3
+        # Delete with Swift
+        # Delete with S3
 
         ### Test again with unauthenticated user
 class TestPublicReadS3Bucket:
