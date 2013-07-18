@@ -36,184 +36,168 @@ class TestPublicReadSwiftContainer:
     def test_default_swift_object():
         # Create Swift object (main user)
         swiftconn = get_swiftconn()
-        swiftconn.put_object(self.bucket,'test','test object')
+        swiftconn.put_object(bucket, filename, text)
         # Read object using S3 (second user)
         s3user = get_s3user()
-        s3user.get_object(self.bucket)
+        s3user.get_object(bucket)
         # Read object using Swift (second user)
         swiftuser = get_s3user()
-        swiftuser.get_object(self.bucket)
+        swiftuser.get_object(bucket)
         # Read object using unauthenticated user
         unauthuser = get_unauthuser()
-        unauthuser.get_contents(self.bucket)
+        unauthuser.get_contents(bucket)
     def test_default_s3_object():
         # Create S3 object (main user)
         s3conn = get_s3conn()
-        s3conn.put_object(self.bucket,'test','test object')
+        s3conn.put_object(bucket, filename, text)
         # Read object using S3 (second user)
         s3user = get_s3user()
-        s3user.get_object(self.bucket)
+        s3user.get_object(bucket)
         # Read object using Swift (second user)
         swiftuser = get_s3user()
-        swiftuser.get_object(self.bucket)
+        swiftuser.get_object(bucket)
         # Read object using unauthenticated user
         unauthuser = get_unauthuser()
-        unauthuser.get_contents(self.bucket)
+        unauthuser.get_contents(bucket)
     def test_public_read_s3_object():
         # Create public read S3 object (main user)
         s3conn = get_s3conn()
-        s3conn.put_object(self.bucket,'test','test object')
-        s3conn.add_public_acl('WRITE',self.bucket,'test')
+        s3conn.put_object(bucket, filename, text)
+        s3conn.add_public_acl('WRITE', bucket, filename)
         # Read object using S3 (second user)
         s3user = get_s3user()
-        s3user.get_object(self.bucket)
+        s3user.get_object(bucket)
         # Read object using Swift (second user)
         swiftuser = get_s3user()
-        swiftuser.get_object(self.bucket)
+        swiftuser.get_object(bucket)
         # Read object using unauthenticated user
         unauthuser = get_unauthuser()
-        unauthuser.get_contents(self.bucket)
+        unauthuser.get_contents(bucket)
     def test_private_read_s3_object():
         # Create public read S3 object (main user)
         s3conn = get_s3conn()
-        s3conn.put_object(self.bucket,'test','test object')
-        s3conn.add_private_acl('READ',USERNAME,self.bucket,'test')
+        s3conn.put_object(bucket, filename, text)
+        s3conn.add_private_acl('READ', USERNAME, bucket, filename)
         # Read object using S3 (second user)
         s3user = get_s3user()
-        s3user.get_object(self.bucket)
+        s3user.get_object(bucket)
         # Read object using Swift (second user)
         swiftuser = get_s3user()
-        swiftuser.get_object(self.bucket)
+        swiftuser.get_object(bucket)
         # Read object using unauthenticated user
         unauthuser = get_unauthuser()
-        unauthuser.get_contents(self.bucket)
+        unauthuser.get_contents(bucket)
     def test_public_full_control_s3_object():
         # Create public read S3 object (main user)
         s3conn = get_s3conn()
-        s3conn.put_object(self.bucket,'test','test object')
-        s3conn.add_public_acl('FULL_CONTROL',self.bucket,'test')
+        s3conn.put_object(bucket, filename, text)
+        s3conn.add_public_acl('FULL_CONTROL', bucket, filename)
         # Read object using S3 (second user)
         s3user = get_s3user()
-        s3user.get_object(self.bucket)
+        s3user.get_object(bucket, filename)
         # Read object using Swift (second user)
         swiftuser = get_s3user()
-        swiftuser.get_object(self.bucket)
+        swiftuser.get_object(bucket)
         # Read object using unauthenticated user
         unauthuser = get_unauthuser()
-        unauthuser.get_contents(self.bucket)
+        unauthuser.get_contents(bucket)
     def test_private_full_control_s3_object():
         # Create public read S3 object (main user)
         s3conn = get_s3conn()
-        s3conn.put_object(self.bucket,'test','test object')
-        s3conn.add_private_acl('FULL_CONTROL',USERNAME,self.bucket,'test')
+        s3conn.put_object(bucket,filename,text)
+        s3conn.add_private_acl('FULL_CONTROL',USERNAME,bucket,filename)
         # Read object using S3 (second user)
         s3user = get_s3user()
-        s3user.get_object(self.bucket)
+        s3user.get_object(bucket)
         # Read object using Swift (second user)
         swiftuser = get_s3user()
-        swiftuser.get_object(self.bucket)
+        swiftuser.get_object(bucket)
         # Read object using unauthenticated user
         unauthuser = get_unauthuser()
-        unauthuser.get_contents(self.bucket)
+        unauthuser.get_contents(bucket)
     ### TODO: TEST ACLs
 class TestPublicWriteSwiftContainer:
     def setUp():
         # Create a Swift public write container
-        self.bucket = create_swift_container_with_acl({'x-container-write':'.r:*'})
+        bucket = create_swift_container_with_acl({'x-container-write':'.r:*'})
     def tearDown():
         delete_all()
     def test_default_swift_object():
         # Create Swift object (main user)
         swiftconn = get_swiftconn()
-        swiftconn.put_object(self.bucket,'test','test object')
+        swiftconn.put_object(bucket,filename,text)
         # Delete object with Swift second user
         swiftuser = get_swiftuser()
-        swiftuser.delete_object(self.bucket, 'test')
+        swiftuser.delete_object(bucket, filename)
         # Check that container is empty
-        swiftconn.get_container(self.bucket)
-        ### eq test
+        eq(swiftconn.list_objects(bucket), [])
 
         # Create Swift object (main user)
-        swiftconn.put_object(self.bucket,'test','test object')
+        swiftconn.put_object(bucket,filename,text)
         # Delete object with S3 second user
         s3user = get_s3user()
-        s3user.delete_object(self.bucket, 'test')
+        s3user.delete_object(bucket, filename)
         # Check that bucket is empty
-        swiftconn.get_container(self.bucket)
-        ### eq test
-
+        eq(swiftconn.list_objects(bucket), [])
+        
         # Create Swift object (main user)
-        swiftconn.put_object(self.bucket,'test','test object')
+        swiftconn.put_object(bucket,filename,text)
         # Delete object with unauthenticated user
         unauthuser = get_unauthuser()
-        unauthuser.delete_object(self.bucket,'test')
+        unauthuser.delete_object(bucket,filename)
         # Check that bucket is empty
-        swiftconn.get_container(self.bucket)
-        ### eq test
+        swiftconn.get_container(bucket)
+        eq(swiftconn.list_objects(bucket), [])
 
         # Create Swift object with second user
-        swiftuser.put_object(self.bucket,'test','test object')
+        swiftuser.put_object(bucket,filename,text)
         # Create S3 object with second user
-        s3user.put_object(self.bucket,'test','test object')
+        s3user.put_object(bucket,filename,text)
         # Create S3 object with unauthenticated user
-        unauthuser.put_object(self.bucket,'test','test object')
-
-        # Read with Swift
-        # Read with S3
-        # Delete with Swift
-        # Delete with S3
-
-        ### Test again with unauthenticated user
+        unauthuser.put_object(bucket,filename,text)
     def test_default_s3_object():
         # Create S3 object (main user)
-        s3conn = get_swiftconn()
-        s3conn.put_object(self.bucket,'test','test object')
+        s3conn = get_s3conn()
+        s3conn.put_object(bucket,filename,text)
         # Delete object with Swift second user
         swiftuser = get_swiftuser()
-        swiftuser.delete_object(self.bucket, 'test')
+        swiftuser.delete_object(bucket, filename)
         # Check that container is empty
-        swiftconn.get_container(self.bucket)
-        ### eq test
+        eq(swiftconn.list_objects(bucket), [])
 
         # Create S3 object (main user)
-        s3conn = get_swiftconn()
-        s3conn.put_object(self.bucket,'test','test object')
+        s3conn.put_object(bucket,filename,text)
         # Delete object with S3 second user
-        s3user = get_swiftuser()
-        s3user.delete_object(self.bucket, 'test')
-        # Check that container is empty
-        swiftconn.get_container(self.bucket)
-        ### eq test
-
+        s3user = get_s3user()
+        s3user.delete_object(bucket, filename)
+        # Check that bucket is empty
+        eq(swiftconn.list_objects(bucket), [])
+        
         # Create S3 object (main user)
-        s3conn = get_swiftconn()
-        s3conn.put_object(self.bucket,'test','test object')
+        s3conn.put_object(bucket,filename,text)
         # Delete object with unauthenticated user
         unauthuser = get_unauthuser()
-        unauthuser.delete_object(self.bucket,'test')
+        unauthuser.delete_object(bucket,filename)
         # Check that bucket is empty
-        swiftconn.get_container(self.bucket)
-        ### eq test
+        swiftconn.get_container(bucket)
+        eq(swiftconn.list_objects(bucket), [])
 
         # Create Swift object with second user
-        swiftuser.put_object(self.bucket,'test','test object')
+        swiftuser.put_object(bucket,filename,text)
         # Create S3 object with second user
-        s3user.put_object(self.bucket,'test','test object')
+        s3user.put_object(bucket,filename,text)
         # Create S3 object with unauthenticated user
-        unauthuser.put_object(self.bucket,'test','test object')
-
-
-        ### Test again with unauthenticated user
+        unauthuser.put_object(bucket,filename,text)
 class TestPrivateReadSwiftContainer:
     def setUp():
         ### Create a Swift public read container...
-        self.bucket = create_swift_container_with_acl({'x-container-read':'SECOND USER, MAIN ACCOUNT'})
+        bucket = create_swift_container_with_acl({'x-container-read':'SECOND USER, MAIN ACCOUNT'})
     def tearDown():
         ### Delete container and objects...
 class TestPrivateWriteSwiftContainer:
     def setUp():
         ### Create a Swift public read container...
-        self.bucket = create_swift_container_with_acl({'x-container-write':'SECOND USER, MAIN ACCOUNT'})
+        bucket = create_swift_container_with_acl({'x-container-write':'SECOND USER, MAIN ACCOUNT'})
     def tearDown():
         ### Delete container and objects...
 
@@ -221,7 +205,7 @@ class TestPrivateWriteSwiftContainer:
 class TestPublicWriteS3Bucket:
     def setUp():
         # Create an S3 public write bucket
-        self.bucket = create_s3_container_with_acl()
+        bucket = create_s3_container_with_acl()
     def tearDown():
         ### Delete container and objects...
 
@@ -229,38 +213,38 @@ class TestPublicWriteS3Bucket:
     def test_default_swift_object():
         # Create Swift object (main user)
         swiftconn = get_swiftconn()
-        swiftconn.put_object(self.bucket,'test','test object')
+        swiftconn.put_object(bucket,filename,text)
         # Delete object with Swift second user
         swiftuser = get_swiftuser()
-        swiftuser.delete_object(self.bucket, 'test')
+        swiftuser.delete_object(bucket, filename)
         # Check that container is empty
-        swiftconn.get_container(self.bucket)
+        swiftconn.get_container(bucket)
         ### eq test
 
         # Create Swift object (main user)
-        swiftconn.put_object(self.bucket,'test','test object')
+        swiftconn.put_object(bucket,filename,text)
         # Delete object with S3 second user
         s3user = get_s3user()
-        s3user.delete_object(self.bucket, 'test')
+        s3user.delete_object(bucket, filename)
         # Check that bucket is empty
-        swiftconn.get_container(self.bucket)
+        swiftconn.get_container(bucket)
         ### eq test
 
         # Create Swift object (main user)
-        swiftconn.put_object(self.bucket,'test','test object')
+        swiftconn.put_object(bucket,filename,text)
         # Delete object with unauthenticated user
         unauthuser = get_unauthuser()
-        unauthuser.delete_object(self.bucket,'test')
+        unauthuser.delete_object(bucket,filename)
         # Check that bucket is empty
-        swiftconn.get_container(self.bucket)
+        swiftconn.get_container(bucket)
         ### eq test
 
         # Create Swift object with second user
-        swiftuser.put_object(self.bucket,'test','test object')
+        swiftuser.put_object(bucket,filename,text)
         # Create S3 object with second user
-        s3user.put_object(self.bucket,'test','test object')
+        s3user.put_object(bucket,filename,text)
         # Create S3 object with unauthenticated user
-        unauthuser.put_object(self.bucket,'test','test object')
+        unauthuser.put_object(bucket,filename,text)
 
         ## MAIN USER
         # Read with Swift
@@ -273,7 +257,7 @@ class TestPublicReadS3Bucket:
 
 class TestPrivateWriteS3Bucket:
     def setUp():
-        self.bucket=create_s3_container_with_acl({'ACL HERE'})
+        bucket=create_s3_container_with_acl({'ACL HERE'})
     def tearDown():
         ### Delete bucket and objects
     ### Similar to private write swift
