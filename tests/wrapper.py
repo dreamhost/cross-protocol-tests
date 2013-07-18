@@ -1,15 +1,19 @@
 import boto
 from boto.exception import S3ResponseError
-from boto.s3.connection import S3Connection
 from boto.s3.key import Key
+import boto.s3.connection
 import boto.s3.acl
+from boto.s3.acl import Grant
 import boto.s3
 
 import swiftclient
 
+import httplib
+
 import os.path
 import sys
 import yaml
+import random
 
 ## FROM https://github.com/ceph/swift/blob/master/test/__init__.py
 def get_config():
@@ -20,7 +24,7 @@ def get_config():
     try:
         # Get config.yaml in the same directory
         __location__ = os.path.realpath(
-        os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
+        os.path.join(os.getcwd(), os.path.dirname(__file__)))
         f = open(os.path.join(__location__, 'config.yaml'))
         # use safe_load instead load
         conf = yaml.safe_load(f)
@@ -28,85 +32,67 @@ def get_config():
     except IOError:
         print >>sys.stderr, 'UNABLE TO READ FUNCTIONAL TESTS CONFIG FILE'
     return conf
+    
+# FROM https://github.com/ceph/s3-tests/blob/master/s3tests/functional/utils.py
+def assert_raises(excClass, callableObj, *args, **kwargs):
+    """
+    Like unittest.TestCase.assertRaises, but returns the exception.
+    """
+    try:
+        callableObj(*args, **kwargs)
+    except excClass as e:
+        return e
+    else:
+        if hasattr(excClass, '__name__'):
+            excName = excClass.__name__
+        else:
+            excName = str(excClass)
+        raise AssertionError("%s not raised" % excName)
 
-conf = get_config()
-s3keys = conf['s3']
-swiftkeys = conf['swift']
-s3userkeys = conf['s3user']
-swiftuserkeys = conf['swiftuser']
+# 3-63 chars, must start/end with lowercase letter or number
+# can contain lowercase letters, numbers, and dashes (no periods)
+# cannot start/end with dash or period
+# no consecutive period/dashes
+def create_valid_name():
+    name_length = random.randint(3,63)
+    name = ''
+    for x in range(name_length):
+        if x == 0 or x == name_length-1:
+            name+=chr(random.randint(97,122))
+        elif x!=0 and name[x-1] in '-.':
+            name+=chr(random.randint(97,122))
+        else:
+            name+=random.choice(chr(random.randint(97,122))+'-')
+    return name
 
-## HELPER FUNCTIONS
-
-# For more parameters:
-# https://github.com/boto/boto/blob/develop/boto/s3/connection.py
-def get_s3conn():
-    return boto.connect_s3(
-        aws_access_key_id = s3keys['aws_access_key_id'],
-        aws_secret_access_key = s3keys['aws_secret_access_key'],
-        host = s3keys['host'],
-        is_secure = True,
-        port = None,
-        proxy = None,
-        proxy_port = None,
-        https_connection_factory = None,
-        calling_format = boto.s3.connection.OrdinaryCallingFormat()
-    )
-
-# For more parameters:
-# https://github.com/openstack/python-swiftclient/blob/master/swiftclient/client.py
-def get_swiftconn():
-    return swiftclient.Connection(
-        authurl = swiftkeys['authurl'],
-        user = swiftkeys['user'],
-        key = swiftkeys['key'],
-        preauthurl = None
-        # NOTE TO SELF: Port, HTTPS/HTTP, etc. all contained in authurl/preauthurl
-    )
-
-def get_s3user():
-    return boto.connect_s3(
-        aws_access_key_id = s3userkeys['aws_access_key_id'],
-        aws_secret_access_key = s3userkeys['aws_secret_access_key'],
-        host = s3userkeys['host'],
-        is_secure = True,
-        port = None,
-        proxy = None,
-        proxy_port = None,
-        https_connection_factory = None,
-        calling_format = boto.s3.connection.OrdinaryCallingFormat()
-    )
-
-def get_swiftuser():
-    return swiftclient.Connection(
-        authurl = swiftuserkeys['authurl'],
-        user = swiftuserkeys['user'],
-        key = swiftuserkeys['key'],
-        preauthurl = None
-        # NOTE TO SELF: Port, HTTPS/HTTP, etc. all contained in authurl/preauthurl
-    )
-
-class S3Conn(S3Connection):
+class S3Conn(boto.s3.connection.S3Connection):
     def head_account(self):
         # Get account stats (returns headers in dictionary format)
         resp = self.make_request('HEAD')
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read)
         headers = {}
-        return headers[header.lower()] = value for header, value in resp.getheaders()
+        for header, value in resp.getheaders():
+            headers[header.lower()]=value
+        return headers
     def head_bucket(self, bucket):
         # Get bucket stats (returns headers in dictionary format)
         resp = self.make_request('HEAD', bucket)
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read)
         headers = {}
-        return headers[header.lower()] = value for header, value in resp.getheaders()
+        for header, value in resp.getheaders():
+            headers[header.lower()]=value
+        return headers
     def head_object(self, bucket, name):
         # Get object stats (returns headers in dictionary format)
         resp = self.make_request('HEAD')
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read)
         headers = {}
-        return headers[header.lower()] = value for header, value in resp.getheaders()
+        for header, value in resp.getheaders():
+            headers[header.lower()]=value
+        return headers
     def list_buckets(self):
         # Returns list of buckets
         buckets = self.get_all_buckets()
@@ -138,14 +124,16 @@ class S3Conn(S3Connection):
         ## EASIER?
         s3conn.create_bucket(bucket)
     def put_object(self, bucket, filename, data):
-        resp = self.make_request('PUT', bucket, filename, data)
+        resp = self.make_request('PUT', bucket, filename, data=data)
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read)
+            """
         ## EASIER?
         b = s3conn.get_bucket(bucket)
         k = Key(b)
         k.key = filename
         k.set_contents_from_string(data)
+            """
     def post_account(self):
         # Unnecessary?
         resp = self.make_request('POST')
@@ -200,7 +188,7 @@ class S3Conn(S3Connection):
         b.set_acl(policy)
         return b.get_acl()
 
-class SwiftConn(Connection):
+class SwiftConn(swiftclient.Connection):
     def list_containers(self):
         # Returns list of containers
         containers = self.get_account()[1]
@@ -214,18 +202,22 @@ class SwiftConn(Connection):
     def get_contents(self, container, filename):
         # Return object get_contents
         return self.get_object(container, filename)[1]
+
 class HTTPConn(httplib.HTTPConnection):
     def get_contents(self, container, filename):
         self.request('GET', '/'+container+'/'+filename)
         resp = self.getresponse()
-        return resp
+        return resp.read()
     def put_object(self, container, filename, data):
         self.request('GET','/'+container+'/'+filename, body=data)
         resp = self.getresponse()
         return resp
+
 # For more parameters:
 # https://github.com/boto/boto/blob/develop/boto/s3/connection.py
-def s3conn():
+def get_s3conn():
+    conf = get_config()
+    s3keys = conf['s3']
     return S3Conn(
         aws_access_key_id = s3keys['aws_access_key_id'],
         aws_secret_access_key = s3keys['aws_secret_access_key'],
@@ -236,6 +228,49 @@ def s3conn():
         proxy_port = None,
         https_connection_factory = None,
         calling_format = boto.s3.connection.OrdinaryCallingFormat()
+        )
+
+def get_s3user():
+    conf = get_config()
+    s3user = conf['s3user']
+    return S3Conn(
+        aws_access_key_id = s3user['aws_access_key_id'],
+        aws_secret_access_key = s3user['aws_secret_access_key'],
+        host = s3user['host'],
+        is_secure = True,
+        port = None,
+        proxy = None,
+        proxy_port = None,
+        https_connection_factory = None,
+        calling_format = boto.s3.connection.OrdinaryCallingFormat()
     )
+
+# For more parameters:
+# https://github.com/openstack/python-swiftclient/blob/master/swiftclient/client.py
+def get_swiftconn():
+    conf = get_config()
+    swiftkeys = conf['swift']
+    return SwiftConn(
+        authurl = swiftkeys['authurl'],
+        user = swiftkeys['user'],
+        key = swiftkeys['key'],
+        preauthurl = None
+        # NOTE TO SELF: Port, HTTPS/HTTP, etc. all contained in authurl/preauthurl
+    )
+
+def get_swiftuser():
+    conf = get_config()
+    s3user = conf['swiftuser']
+    return SwiftConn(
+        authurl = swiftuserkeys['authurl'],
+        user = swiftuserkeys['user'],
+        key = swiftuserkeys['key'],
+        preauthurl = None
+        # NOTE TO SELF: Port, HTTPS/HTTP, etc. all contained in authurl/preauthurl
+    )
+
 def get_unauthuser():
-    return HTTPConn('objects.dreamhost.com')
+    conf = get_config()
+    s3keys = conf['s3']
+    return HTTPConn(s3keys['host'])
+

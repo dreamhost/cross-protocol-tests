@@ -3,6 +3,7 @@
 # Some tests don't work on objects.dreamhost.com
 # All should work in alexandria
 # Keys on main user:
+
 s3:
     aws_access_key_id: nXVJYzBvc3qppSM8wyq_
     aws_secret_access_key: aS1W422mO7I4G9Mvo_5A3NmnhJPeUr1q8o0ippVL
@@ -34,3 +35,5 @@ swiftuser:
     user: user-test:swiftuser
     key: NzXrQktRgwUWNLlMY_08n77fiLXI3R1c6WkSX_lR
     authurl: http://objects.dreamhost.com/auth/v1.0
+
+user: user-test
