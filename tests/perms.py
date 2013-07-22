@@ -46,6 +46,9 @@ def delete_bucket(name):
 
 
 class SwiftContainerReadPermissions(object):
+    # Basic test cases for Swift container read permissions:
+    # Use the second user to read files with different permissions
+
     def test_read_default_swift_object(self):
         bucket = self.bucket
         filename = 'default-swift-object'
@@ -137,16 +140,14 @@ class TestPublicReadSwiftContainer(unittest.TestCase, SwiftContainerReadPermissi
     # list object permissions can be set by using '.rlistings: username'
     # which is currently not supported in the RadosGW
 
-    # Create a Swift container (public read) then create various objects with
-    # different permissions and try to read the object using a second user
-    # as well as an unauthenticated user
-
     def setUp(self):
         # Create a Swift public read container
         self.bucket = \
         create_swift_container_with_acl({'x-container-read':'.r:*'})
     def tearDown(self):
         delete_bucket(self.bucket)
+
+    # Use the unauth user to read files with different permissions
 
     def test_unauthuser_read_default_swift_object(self):
         bucket = self.bucket
@@ -229,6 +230,8 @@ class TestPrivateReadSwiftContainer(unittest.TestCase, SwiftContainerReadPermiss
     def tearDown(self):
         delete_bucket(self.bucket)
 
+    # Use the unauth user to read files with different permissions
+
     def test_unauthuser_read_default_swift_object(self):
         bucket = self.bucket
         filename = 'default-swift-object'
@@ -305,6 +308,8 @@ class TestPrivateReadSwiftContainer(unittest.TestCase, SwiftContainerReadPermiss
             bucket, filename)
 
 class SwiftContainerWritePermissions(object):
+    # Basic test cases for Swift container write permissions
+    # Use the second user to create and delete files
     def test_create_default_swift_object(self):
         bucket = self.bucket
         filename = 'default-swift-object'
@@ -317,6 +322,8 @@ class SwiftContainerWritePermissions(object):
         # Delete with Swift
         swiftconn = get_swiftconn()
         swiftconn.delete_object(bucket, filename)
+        # Check that it was deleted
+        assert_raises(swiftclient.ClientException, swiftconn.delete_object, bucket, filename)
 
         # Create Swift object with second user
         swiftuser.put_object(bucket, filename, text)
@@ -325,6 +332,8 @@ class SwiftContainerWritePermissions(object):
         # Delete with S3
         s3conn = get_s3conn()
         s3conn.delete_object(bucket, filename)
+        # Check that it was deleted
+        assert_raises(boto.exception.S3ResponseError, s3conn.delete_object, bucket, filename)
     def test_create_default_s3_object(self):
         bucket = self.bucket
         filename = 'default-s3-object'
@@ -337,6 +346,8 @@ class SwiftContainerWritePermissions(object):
         # Delete with Swift
         swiftconn = get_swiftconn()
         swiftconn.delete_object(bucket, filename)
+        # Check that it was deleted
+        assert_raises(swiftclient.ClientException, swiftconn.delete_object, bucket, filename)
 
         # Create S3 object with second user
         s3user.put_object(bucket, filename, text)
@@ -345,6 +356,8 @@ class SwiftContainerWritePermissions(object):
         # Delete with S3
         s3conn = get_s3conn()
         s3conn.delete_object(bucket, filename)
+        # Check that it was deleted
+        assert_raises(boto.exception.S3ResponseError, s3conn.delete_object, bucket, filename)
     def test_delete_default_swift_object(self):
         # Create Swift object (main user)
         bucket = self.bucket
@@ -481,7 +494,6 @@ class TestPublicWriteSwiftContainer(unittest.TestCase, SwiftContainerWritePermis
 
     # Create a Swift container (public write) then create/delete various
     # objects with different permissions using the second/unauthenticated user
-
     def setUp(self):
         # Create a Swift public write container
         self.bucket = \
@@ -1379,6 +1391,8 @@ class TestPrivateWriteSwiftContainerPublicWriteS3Bucket(unittest.TestCase, Cross
         eq(swiftconn.list_objects(bucket), [filename])
         # Delete with Swift
         swiftconn.delete_object(bucket, filename)
+        # Check that bucket is empty
+        eq(swiftconn.list_objects(bucket), [])
 
         # Create object with unauthenticated user
         unauthuser = get_unauthuser()
@@ -1388,6 +1402,8 @@ class TestPrivateWriteSwiftContainerPublicWriteS3Bucket(unittest.TestCase, Cross
         eq(s3conn.list_objects(bucket), [filename])
         # Delete with S3
         s3conn.delete_object(bucket, filename)
+        # Check that bucket is empty
+        eq(s3conn.list_objects(bucket), [])
     def test_unauthuser_delete_default_swift_object(self):
         # Create Swift object (main user)
         bucket = self.bucket
