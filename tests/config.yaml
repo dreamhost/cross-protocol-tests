@@ -14,26 +14,15 @@ swift:
     key: dCKs5pjIiPwH9LrZ-Bi3xfhqcGJm4Ft8D9pN4fHG
     authurl: http://objects.dreamhost.com/auth/v1.0
 
-FIXMEs3:
-    aws_access_key_id: ywXWWc4R2A890U4iWGZ4
-    aws_secret_access_key: LWzB2ncauIrKbRV0qRvEfyMIJw0yioniK7ZMCGzZ
-    host: objects.dreamhost.com
-    
-FIXMEswift:
-    user: permissions-test:swiftuser
-    key: iTcox3unVFYmeyVHScb-Ls7vOKLVLE2Aqh0bhC7W
-    authurl: http://objects.dreamhost.com/auth/v1.0
-
 # Keys on other user:
+user: second-user
 
 s3user:
-    aws_access_key_id: JD8iDySVZ2qwjPpzQAR1
-    aws_secret_access_key: kbZ8yeCEmKMstN5pdL2GGNDhRulUNY-VcaTaJ1bB
+    aws_access_key_id: 9FsnlZUItrJLuF32d2VX
+    aws_secret_access_key: OH9CGGuUywKlek4ERSlKteFiPbF4rzOgx0eegoFp
     host: objects.dreamhost.com
 
 swiftuser:
-    user: user-test:swiftuser
-    key: NzXrQktRgwUWNLlMY_08n77fiLXI3R1c6WkSX_lR
+    user: second-user:swiftuser
+    key: 4rPXEfe0ncsM2i0TR_Ld6NnDBbRzzF1QOWdSCt-9
     authurl: http://objects.dreamhost.com/auth/v1.0
-
-user: user-test
