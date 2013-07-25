@@ -232,7 +232,6 @@ class TestPublicReadSwiftContainer(unittest.TestCase,
         unauthuser = get_unauthuser()
         eq(unauthuser.get_contents(bucket, objectname), text)
 
-
 class TestPrivateReadSwiftContainer(unittest.TestCase,
                                     SwiftContainerReadPermissions):
 
@@ -318,7 +317,6 @@ class TestPrivateReadSwiftContainer(unittest.TestCase,
         assert_raises(httplib.HTTPException, unauthuser.get_contents,
                       bucket, objectname)
 
-
 class SwiftContainerWritePermissions(object):
     # Swift write permissions allow a group or user to create/delete
     # objects in the container
@@ -337,8 +335,6 @@ class SwiftContainerWritePermissions(object):
         swiftconn.delete_object(bucket, objectname)
         # Check that it was deleted
         eq(swiftconn.list_objects(bucket), [])
-        # assert_raises(swiftclient.ClientException,
-        # swiftconn.delete_object, bucket, objectname)
 
         # Create Swift object with second user
         swiftuser.put_object(bucket, objectname, text)
@@ -347,9 +343,9 @@ class SwiftContainerWritePermissions(object):
         # Delete with S3
         s3conn = get_s3conn()
         s3conn.delete_object(bucket, objectname)
-        # Check that it was deleted
-        assert_raises(boto.exception.S3ResponseError,
-                      s3conn.delete_object, bucket, objectname)
+        # Check that bucket is empty
+        eq(s3conn.list_objects(bucket), [])
+
 
     def test_create_default_s3_object(self):
         bucket = self.bucket
@@ -364,8 +360,7 @@ class SwiftContainerWritePermissions(object):
         swiftconn = get_swiftconn()
         swiftconn.delete_object(bucket, objectname)
         # Check that it was deleted
-        assert_raises(swiftclient.ClientException,
-                      swiftconn.delete_object, bucket, objectname)
+        eq(swiftconn.list_objects(bucket), [])
 
         # Create S3 object with second user
         s3user.put_object(bucket, objectname, text)
@@ -374,9 +369,8 @@ class SwiftContainerWritePermissions(object):
         # Delete with S3
         s3conn = get_s3conn()
         s3conn.delete_object(bucket, objectname)
-        # Check that it was deleted
-        assert_raises(boto.exception.S3ResponseError,
-                      s3conn.delete_object, bucket, objectname)
+        # Check that bucket is empty
+        eq(s3conn.list_objects(bucket), [])
 
     def test_delete_default_swift_object(self):
         # Create Swift object (main user)
