@@ -378,37 +378,3 @@ def get_unauthuser():
     conf = get_config()
     s3keys = conf['s3']
     return HTTPConn(s3keys['host'])
-
-
-def get_swift_noaccess():
-    """
-    Return the no-access Swift account
-    """
-    conf = get_config()
-    swiftuser = conf['swift_noaccess']
-    return SwiftConn(
-        authurl=swiftuser['authurl'],
-        user=swiftuser['user'],
-        key=swiftuser['key'],
-        preauthurl=None
-    )
-
-
-def get_s3_noaccess():
-    """
-    Return the no-access S3 account
-    """
-    conf = get_config()
-    s3user = conf['s3_noaccess']
-    return S3Conn(
-        aws_access_key_id=s3user['aws_access_key_id'],
-        aws_secret_access_key=s3user['aws_secret_access_key'],
-        host=s3user['host'],
-        is_secure=True,
-        port=None,
-        proxy=None,
-        proxy_port=None,
-        https_connection_factory=None,
-        calling_format=boto.s3.connection.OrdinaryCallingFormat(),
-        debug=0
-        )
