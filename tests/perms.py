@@ -15,6 +15,13 @@ import unittest
 from nose.tools import eq_ as eq
 
 
+#
+# ASSUMPTION: If an unauthorized user can perform a certain request,
+#             any Swift/S3 account on the RadosGW can do the same
+#
+
+
+# USERNAME of the second (non-main) account
 conf = get_config()
 username = conf['user']
 
@@ -194,6 +201,21 @@ class TestPublicReadSwiftContainer(unittest.TestCase,
         unauthuser = get_unauthuser()
         eq(unauthuser.get_contents(bucket, objectname), text)
 
+        # Remove object ACL
+        s3conn.remove_public_acl('READ', bucket, objectname)
+        # Read object using unauthenticated user
+        unauthuser = get_unauthuser()
+        eq(unauthuser.get_contents(bucket, objectname), text)
+
+        # Re-add object ACL
+        s3conn.add_public_acl('READ', bucket, objectname)
+        # Remove container permissions
+        swiftconn = get_swiftconn()
+        swiftconn.post_container(bucket, {'x-container-read': ''})
+        # Read object using unauthenticated user
+        unauthuser = get_unauthuser()
+        eq(unauthuser.get_contents(bucket, objectname), text)
+
     def test_unauthuser_read_private_read_s3_object(self):
         bucket = self.bucket
         objectname = 'private-read-s3-object'
@@ -207,6 +229,22 @@ class TestPublicReadSwiftContainer(unittest.TestCase,
         unauthuser = get_unauthuser()
         eq(unauthuser.get_contents(bucket, objectname), text)
 
+        # Remove object ACL
+        s3conn.remove_private_acl('READ', username, bucket, objectname)
+        # Read object using unauthenticated user
+        unauthuser = get_unauthuser()
+        eq(unauthuser.get_contents(bucket, objectname), text)
+
+        # Re-add object ACL
+        s3conn.add_private_acl('READ', username, bucket, objectname)
+        # Remove container permissions
+        swiftconn = get_swiftconn()
+        swiftconn.post_container(bucket, {'x-container-read': ''})
+        # Read object using unauthenticated user
+        unauthuser = get_unauthuser()
+        assert_raises(httplib.HTTPException, unauthuser.get_contents,
+                      bucket, objectname)
+
     def test_unauthuser_read_public_full_control_s3_object(self):
         bucket = self.bucket
         objectname = 'public-full-control-s3-object'
@@ -215,6 +253,21 @@ class TestPublicReadSwiftContainer(unittest.TestCase,
         s3conn = get_s3conn()
         s3conn.put_object(bucket, objectname, text)
         s3conn.add_public_acl('FULL_CONTROL', bucket, objectname)
+        # Read object using unauthenticated user
+        unauthuser = get_unauthuser()
+        eq(unauthuser.get_contents(bucket, objectname), text)
+
+        # Remove object ACL
+        s3conn.remove_public_acl('FULL_CONTROL', bucket, objectname)
+        # Read object using unauthenticated user
+        unauthuser = get_unauthuser()
+        eq(unauthuser.get_contents(bucket, objectname), text)
+
+        # Re-add object ACL
+        s3conn.add_public_acl('FULL_CONTROL', bucket, objectname)
+        # Remove container permissions
+        swiftconn = get_swiftconn()
+        swiftconn.post_container(bucket, {'x-container-read': ''})
         # Read object using unauthenticated user
         unauthuser = get_unauthuser()
         eq(unauthuser.get_contents(bucket, objectname), text)
@@ -231,6 +284,23 @@ class TestPublicReadSwiftContainer(unittest.TestCase,
         # QUESTIONABLE BEHAVIOR
         unauthuser = get_unauthuser()
         eq(unauthuser.get_contents(bucket, objectname), text)
+
+        # Remove object ACL
+        s3conn.remove_private_acl('FULL_CONTROL', username, bucket, objectname)
+        # Read object using unauthenticated user
+        unauthuser = get_unauthuser()
+        eq(unauthuser.get_contents(bucket, objectname), text)
+
+        # Re-add object ACL
+        s3conn.add_private_acl('FULL_CONTROL', username, bucket, objectname)
+        # Remove container permissions
+        swiftconn = get_swiftconn()
+        swiftconn.post_container(bucket, {'x-container-read': '',
+            'x-container-write': ''})
+        # Read object using unauthenticated user
+        unauthuser = get_unauthuser()
+        assert_raises(httplib.HTTPException, unauthuser.get_contents,
+                      bucket, objectname)
 
 class TestPrivateReadSwiftContainer(unittest.TestCase,
                                     SwiftContainerReadPermissions):
@@ -277,6 +347,7 @@ class TestPrivateReadSwiftContainer(unittest.TestCase,
         s3conn.add_public_acl('READ', bucket, objectname)
         # Read object using unauthenticated user
         unauthuser = get_unauthuser()
+        # QUESTIONABLE BEHAVIOR
         eq(unauthuser.get_contents(bucket, objectname), text)
 
     def test_unauthuser_read_private_read_s3_object(self):
@@ -302,6 +373,7 @@ class TestPrivateReadSwiftContainer(unittest.TestCase,
         s3conn.add_public_acl('FULL_CONTROL', bucket, objectname)
         # Read object using unauthenticated user
         unauthuser = get_unauthuser()
+        # QUESTIONABLE BEHAVIOR
         eq(unauthuser.get_contents(bucket, objectname), text)
 
     def test_unauthuser_read_private_full_control_s3_object(self):
@@ -316,6 +388,7 @@ class TestPrivateReadSwiftContainer(unittest.TestCase,
         unauthuser = get_unauthuser()
         assert_raises(httplib.HTTPException, unauthuser.get_contents,
                       bucket, objectname)
+
 
 class SwiftContainerWritePermissions(object):
     # Swift write permissions allow a group or user to create/delete
@@ -1549,7 +1622,7 @@ class TestPrivateWriteS3PublicWriteSwift(unittest.TestCase,
 
         # Create object with unauthenticated user
         unauthuser = get_unauthuser()
-        # Should fail??
+        # QUESTIONABLE BEHAVIOR
         assert_raises(httplib.HTTPException, unauthuser.put_object,
                       bucket, objectname, text)
 
@@ -1563,7 +1636,7 @@ class TestPrivateWriteS3PublicWriteSwift(unittest.TestCase,
         swiftconn.put_object(bucket, objectname, text)
         # Delete object with unauthenticated user
         unauthuser = get_unauthuser()
-        # Should fail??
+        # QUESTIONABLE BEHAVIOR
         assert_raises(httplib.HTTPException, unauthuser.delete_object,
                       bucket, objectname)
 
@@ -1576,6 +1649,6 @@ class TestPrivateWriteS3PublicWriteSwift(unittest.TestCase,
         s3conn.put_object(bucket, objectname, text)
         # Delete object with unauthenticated user
         unauthuser = get_unauthuser()
-        # Should fail??
+        # QUESTIONABLE BEHAVIOR
         assert_raises(httplib.HTTPException, unauthuser.delete_object,
                       bucket, objectname)

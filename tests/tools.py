@@ -76,7 +76,7 @@ class S3Conn(boto.s3.connection.S3Connection):
         # Get account stats (returns headers in dictionary format)
         resp = self.make_request('HEAD')
         if resp.status < 200 or resp.status >= 300:
-            raise S3ResponseError(resp.status, resp.reason, resp.read)
+            raise S3ResponseError(resp.status, resp.reason, resp.read())
         headers = {}
         for header, value in resp.getheaders():
             headers[header.lower()] = value
@@ -86,7 +86,7 @@ class S3Conn(boto.s3.connection.S3Connection):
         # Get bucket stats (returns headers in dictionary format)
         resp = self.make_request('HEAD', bucket)
         if resp.status < 200 or resp.status >= 300:
-            raise S3ResponseError(resp.status, resp.reason, resp.read)
+            raise S3ResponseError(resp.status, resp.reason, resp.read())
         headers = {}
         for header, value in resp.getheaders():
             headers[header.lower()] = value
@@ -96,7 +96,7 @@ class S3Conn(boto.s3.connection.S3Connection):
         # Get object stats (returns headers in dictionary format)
         resp = self.make_request('HEAD')
         if resp.status < 200 or resp.status >= 300:
-            raise S3ResponseError(resp.status, resp.reason, resp.read)
+            raise S3ResponseError(resp.status, resp.reason, resp.read())
         headers = {}
         for header, value in resp.getheaders():
             headers[header.lower()] = value
@@ -118,30 +118,30 @@ class S3Conn(boto.s3.connection.S3Connection):
         # Return object contents
         resp = self.make_request('GET', bucket, filename)
         if resp.status < 200 or resp.status >= 300:
-            raise S3ResponseError(resp.status, resp.reason, resp.read)
+            raise S3ResponseError(resp.status, resp.reason, resp.read())
         return resp.read()
 
     def delete_bucket(self, bucket):
         resp = self.make_request('DELETE', bucket)
         if resp.status < 200 or resp.status >= 300:
-            raise S3ResponseError(resp.status, resp.reason, resp.read)
+            raise S3ResponseError(resp.status, resp.reason, resp.read())
 
     def delete_object(self, bucket, filename):
         resp = self.make_request('DELETE', bucket, filename)
         if resp.status < 200 or resp.status >= 300:
-            raise S3ResponseError(resp.status, resp.reason, resp.read)
+            raise S3ResponseError(resp.status, resp.reason, resp.read())
 
     def put_bucket(self, bucket):
         resp = self.make_request('PUT', bucket)
         if resp.status < 200 or resp.status >= 300:
-            raise S3ResponseError(resp.status, resp.reason, resp.read)
+            raise S3ResponseError(resp.status, resp.reason, resp.read())
         ## EASIER?
         # self.create_bucket(bucket)
 
     def put_object(self, bucket, filename, data):
         resp = self.make_request('PUT', bucket, filename, data=data)
         if resp.status < 200 or resp.status >= 300:
-            raise S3ResponseError(resp.status, resp.reason, resp.read)
+            raise S3ResponseError(resp.status, resp.reason, resp.read())
         """
         b = self.get_bucket(bucket)
         k = Key(b)
@@ -153,21 +153,21 @@ class S3Conn(boto.s3.connection.S3Connection):
         # Unnecessary? Add headers eventually
         resp = self.make_request('POST')
         if resp.status < 200 or resp.status >= 300:
-            raise S3ResponseError(resp.status, resp.reason, resp.read)
+            raise S3ResponseError(resp.status, resp.reason, resp.read())
         return resp
 
     def post_bucket(self, bucket):
         # Unnecessary? Add headers eventually
         resp = self.make_request('POST', bucket)
         if resp.status < 200 or resp.status >= 300:
-            raise S3ResponseError(resp.status, resp.reason, resp.read)
+            raise S3ResponseError(resp.status, resp.reason, resp.read())
         return resp
 
     def post_object(self, bucket, filename):
         # Unnecessary? Add headers eventually
         resp = self.make_request('POST', bucket, filename)
         if resp.status < 200 or resp.status >= 300:
-            raise S3ResponseError(resp.status, resp.reason, resp.read)
+            raise S3ResponseError(resp.status, resp.reason, resp.read())
         return resp
 
     def get_acl(self, bucket, filename=None):
@@ -213,16 +213,80 @@ class S3Conn(boto.s3.connection.S3Connection):
         b.set_acl(policy)
         return b.get_acl()
 
+    def remove_public_acl(self, permission, bucket, filename=None):
+        # Remove a public (Group) ACL
+        grant_type = 'Group'
+        uri = 'http://acs.amazonaws.com/groups/global/AllUsers'
+        b = self.get_bucket(bucket)
+        if filename:
+            k = Key(b)
+            k.key = filename
+            policy = k.get_acl()
+            new_grants = []
+            for grant in policy.acl.grants:
+                if grant.permission == permission and grant.uri == uri \
+                   and grant.type == grant_type:
+                   continue
+                else:
+                    new_grants.append(grant)
+            policy.acl.grants = new_grants
+            k.set_acl(policy)
+            return k.get_acl()
+        policy = b.get_acl()
+        new_grants = []
+        for grant in policy.acl.grants:
+            if grant.permission == permission and grant.uri == uri \
+               and grant.type == grant_type:
+               continue
+            else:
+                new_grants.append(grant)
+        policy.acl.grants = new_grants
+        b.set_acl(policy)
+        return b.get_acl()
+
+    def remove_private_acl(self, permission, username, bucket, filename=None):
+        # Remove a private (CanonicalUser) ACL
+        grant_type = 'CanonicalUser'
+        username = username
+        b = self.get_bucket(bucket)
+        if filename:
+            k = Key(b)
+            k.key = filename
+            policy = k.get_acl()
+            new_grants = []
+            for grant in policy.acl.grants:
+                if grant.permission == permission and \
+                   grant.type == grant_type and grant.id == username:
+                   continue
+                else:
+                    new_grants.append(grant)
+            policy.acl.grants = new_grants
+            k.set_acl(policy)
+            return k.get_acl()
+        policy = b.get_acl()
+        new_grants = []
+        for grant in policy.acl.grants:
+            if grant.permission == permission and \
+               grant.type == grant_type and grant.id == username:
+               continue
+            else:
+                new_grants.append(grant)
+        policy.acl.grants = new_grants
+        b.set_acl(policy)
+        return b.get_acl()
+
     def compare_list_objects(self, bucket):
         # Return object contents
         resp = self.make_request('GET', bucket)
         if resp.status < 200 or resp.status >= 300:
-            raise S3ResponseError(resp.status, resp.reason, resp.read)
+            raise S3ResponseError(resp.status, resp.reason, resp.read())
         return resp.read()
 
     def get_md5(self, bucket, filename):
         # Returns object md5
         resp = self.make_request('HEAD', bucket, filename)
+        if resp.status < 200 or resp.status >= 300:
+            raise S3ResponseError(resp.status, resp.reason, resp.read())
         for x in resp.getheaders():
             if x[0] == 'etag':
                 return x[1][1:-1]
@@ -230,6 +294,8 @@ class S3Conn(boto.s3.connection.S3Connection):
     def get_size(self, bucket, filename):
         # Returns object size
         resp = self.make_request('HEAD', bucket, filename)
+        if resp.status < 200 or resp.status >= 300:
+            raise S3ResponseError(resp.status, resp.reason, resp.read())
         for x in resp.getheaders():
             if x[0] == 'content-length':
                 return x[1]
@@ -274,28 +340,28 @@ class HTTPConn(httplib.HTTPConnection):
         self.request('GET', '/'+bucket+'/'+filename)
         resp = self.getresponse()
         if resp.status < 200 or resp.status >= 300:
-            raise httplib.HTTPException
+            raise httplib.HTTPException(resp.status, resp.reason, resp.read())
         return resp.read()
 
     def put_object(self, bucket, filename, data):
         self.request('PUT', '/'+bucket+'/'+filename, body=data)
         resp = self.getresponse()
         if resp.status < 200 or resp.status >= 300:
-            raise httplib.HTTPException
+            raise httplib.HTTPException(resp.status, resp.reason, resp.read())
         return resp
 
     def delete_object(self, bucket, filename):
         self.request('DELETE', '/'+bucket+'/'+filename)
         resp = self.getresponse()
         if resp.status < 200 or resp.status >= 300:
-            raise httplib.HTTPException
+            raise httplib.HTTPException(resp.status, resp.reason, resp.read())
         return resp
 
     def list_objects(self, bucket):
         self.request('GET', '/'+bucket)
         resp = self.getresponse()
         if resp.status < 200 or resp.status >= 300:
-            raise httplib.HTTPException
+            raise httplib.HTTPException(resp.status, resp.reason, resp.read())
         return resp.read()
 
 
