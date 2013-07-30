@@ -1,6 +1,6 @@
 # Config: Keys on Alexandria
 
-# Keys on main user:
+# MAIN USER:
 
 s3:
     aws_access_key_id: aws_id
@@ -12,7 +12,7 @@ swift:
     key: swift_secret_key
     authurl: 
 
-# Keys on second user:
+# SECOND USER:
 
 username: second-username
 
