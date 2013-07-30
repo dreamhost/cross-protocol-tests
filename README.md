@@ -1,4 +1,4 @@
-cross-protocol-tests
+S3/SWIFT CROSS PROTOCOL TESTS
 ====================
 
 Cross protocol tests for RadosGW

@@ -92,9 +92,9 @@ class S3Conn(boto.s3.connection.S3Connection):
             headers[header.lower()] = value
         return headers
 
-    def head_object(self, bucket, name):
+    def head_object(self, bucket, objectname):
         # Get object stats (returns headers in dictionary format)
-        resp = self.make_request('HEAD')
+        resp = self.make_request('HEAD', bucket, objectname)
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read())
         headers = {}
