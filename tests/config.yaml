@@ -1,21 +1,20 @@
-# Config
+# Config: Keys on Alexandria
 
-# Some tests don't work on objects.dreamhost.com
-# All should work in alexandria
 # Keys on main user:
 
 s3:
-    aws_access_key_id: nXVJYzBvc3qppSM8wyq_
-    aws_secret_access_key: aS1W422mO7I4G9Mvo_5A3NmnhJPeUr1q8o0ippVL
+    aws_access_key_id: h8OS-WBYPFPOB6EREvWk
+    aws_secret_access_key: JwjA0YfsFRuuUYj93SOO-UVz1BDL7vXXLGHETlqI
     host: objects.dreamhost.com
     
 swift:
-    user: broken:swiftuser
-    key: dCKs5pjIiPwH9LrZ-Bi3xfhqcGJm4Ft8D9pN4fHG
+    user: basic-sanity-test:swiftuser
+    key: zeDrqIVyM0xkk33O-iETF9MmhjSi6W6z2ZDbhTFP
     authurl: http://objects.dreamhost.com/auth/v1.0
 
-# Keys on other user:
-user: second-user
+# Keys on second user:FIXME
+
+username: second-user
 
 s3user:
     aws_access_key_id: 9FsnlZUItrJLuF32d2VX

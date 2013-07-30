@@ -8,8 +8,6 @@ from tools import get_swiftuser
 from tools import get_unauthuser
 
 import httplib
-import swiftclient
-import boto
 
 import unittest
 from nose.tools import eq_ as eq
@@ -23,7 +21,7 @@ from nose.tools import eq_ as eq
 
 # USERNAME of the second (non-main) account
 conf = get_config()
-username = conf['user']
+username = conf['username']
 
 
 def create_swift_container_with_acl(acl_headers):
@@ -425,7 +423,6 @@ class TestPrivateReadSwiftContainer(unittest.TestCase,
         unauthuser = get_unauthuser()
         eq(unauthuser.get_contents(bucket, objectname), text)
 
-
     def test_unauthuser_read_private_full_control_s3_object(self):
         bucket = self.bucket
         objectname = 'private-full-control-s3-object'
@@ -485,7 +482,6 @@ class SwiftContainerWritePermissions(object):
         s3conn.delete_object(bucket, objectname)
         # Check that bucket is empty
         eq(s3conn.list_objects(bucket), [])
-
 
     def test_create_default_s3_object(self):
         bucket = self.bucket
@@ -764,23 +760,37 @@ class TestPublicWriteSwiftContainer(unittest.TestCase,
         eq(s3conn.list_objects(bucket), [])
 
 ## CHANGING THE S3 BUCKET PERMS (that is, making it have non-default perms)
-## disables swift public write. TO TEST: does changing the perms BACK to default
-## do anything? DUN DUN DUN
-    def test_unauthuser_create_2(self):
+## disables swift public write.
+    def test_unauthuser_create_remove_default_perms(self):
         bucket = self.bucket
         objectname = 'default-object'
         text = 'default object'
         # Set read permissions using S3 (no more default S3)
         s3conn = get_s3conn()
-        s3conn.add_public_acl('WRITE', bucket)
+        s3conn.add_public_acl('READ', bucket)
         # Create object with unauthenticated user
         unauthuser = get_unauthuser()
-        unauthuser.put_object(bucket, objectname, text)
-        # Check that it was created
-        swiftconn = get_swiftconn()
-        eq(swiftconn.list_objects(bucket), [objectname])
-        # Delete with Swift
-        swiftconn.delete_object(bucket, objectname)
+        # Fails... QUESTIONABLE BEHAVIOR
+        assert_raises(httplib.HTTPException, unauthuser.put_object,
+                      bucket, objectname, text)
+
+## Does changing the perms BACK to default re-enable swift public write?
+## Nope... Swift public write is still disabled
+    def test_unauthuser_create_reset_default_perms(self):
+        bucket = self.bucket
+        objectname = 'default-object'
+        text = 'default object'
+        # Set read permissions using S3 (no more default S3)
+        s3conn = get_s3conn()
+        s3conn.add_public_acl('READ', bucket)
+        # Reset permissions using S3
+        s3conn.remove_public_acl('READ', bucket)
+        # Create object with unauthenticated user
+        unauthuser = get_unauthuser()
+        # Fails... QUESTIONABLE BEHAVIOR
+        assert_raises(httplib.HTTPException, unauthuser.put_object,
+                      bucket, objectname, text)
+
 
 class TestPrivateWriteSwiftContainer(unittest.TestCase,
                                      SwiftContainerWritePermissions):

@@ -1,25 +1,27 @@
-# Config
+# Config: Keys on Alexandria
 
 # Keys on main user:
 
 s3:
-    aws_access_key_id: 
-    aws_secret_access_key: 
-    host: api.alexandria.dhobjects.com
-
+    aws_access_key_id: aws_id
+    aws_secret_access_key: aws_secret_key
+    host: 
+    
 swift:
-    user: 
-    key: 
-    authurl: http://api.alexandria.dhobjects.com/auth/v1.0
+    user: username:key
+    key: swift_secret_key
+    authurl: 
 
-# Keys on other user:
+# Keys on second user:
+
+username: second-username
 
 s3user:
-    aws_access_key_id: 
-    aws_secret_access_key: 
-    host: 
+    aws_access_key_id: aws_id
+    aws_secret_access_key: aws_secret_key
+    host:  
 
 swiftuser:
-    user: 
-    key: 
-    authurl: http://api.alexandria.dhobjects.com/auth/v1.0
+    user: second-username:key
+    key: swift_secret_key
+    authurl: 
