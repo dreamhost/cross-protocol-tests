@@ -1,7 +1,31 @@
 S3/SWIFT CROSS PROTOCOL TESTS
 ====================
 
-Cross protocol tests for RadosGW
+Cross protocol tests for RADOS Gateway
+
+
+basic-sanity.py
+Test basic operations between Swift and S3, ie:
+    Creating buckets/objects
+    Deleting buckets/objects
+    Listing buckets/objects
+    Copying objects
+    Sizes of objects
+    Checksums of objects
+    Bucket size accounting
+
+
+perms.py:
+Test different permissions across Swift and S3, ie:
+    Read objects using a variety of Swift/S3 permissions
+        and accounts
+    Create/Delete objects using a variety of Swift/S3 permissions
+        and accounts
+    List objects using a variety of Swift/S3 permissions
+        and accounts
+
+
+To run tests:
 
 -Modify and rename sample_config.yaml to config.yaml
 
@@ -12,3 +36,36 @@ Cross protocol tests for RadosGW
 -The second user credentials go under SECOND USER
 
 -Make sure to include the second user's USERNAME
+
+
+NOTES:
+
+ETAG header using S3 API has weird formatting compared to Swift API
+    eg. '"md5hash"' (S3) vs 'md5hash' (Swift)
+
+Permissions in S3:
+    Bucket:
+        Read: Gives user/group permission to list buckets
+        Write: Gives user/group permission to create/delete objects
+    Object:
+        Read: Gives user/group permission to read object
+        (No write permission on objects)
+
+Permissions in Swift:
+    Bucket:
+        Read: Gives user/group permission to read objects in bucket
+            (Includes .rlistings, which gives permission to list objects
+            in bucket - not available)
+        Write: Gives user/group permission to create/delete objects
+    Object:
+        (No object permissions)
+
+"Unauthorized user" using HTTPConnection:
+    Using the path /gateway/swift/bucket/object is the same as
+        using the path /gateway/bucket/object
+    Responses return appropriately (using the Swift path returns
+        a Swift response and vice versa)
+
+Swift Public Write Containers:
+    Changing the S3 bucket permissions overrides the Swift
+        public write permission
