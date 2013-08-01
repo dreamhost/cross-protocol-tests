@@ -305,7 +305,7 @@ class S3Conn(boto.s3.connection.S3Connection):
                 return x[1][1:-1]
 
     def get_size(self, bucket, objectname=None):
-        # Returns size of bucket or object
+        # Returns bucket or object size
         if objectname:
             # Returns object size
             resp = self.make_request('HEAD', bucket, objectname)
@@ -314,12 +314,25 @@ class S3Conn(boto.s3.connection.S3Connection):
             for x in resp.getheaders():
                 if x[0] == 'content-length':
                     return int(x[1])
-        b = self.get_bucket(bucket)
-        total_size = 0
-        for objectname in self.list_objects(bucket):
-            k = b.lookup(objectname)
-            total_size += k.size
-        return total_size
+        headers = self.make_request('HEAD', bucket)
+        return int(headers['x-container-bytes-used'])
+
+        # Returns size of bucket or object
+        if objectname:
+            resp = self.make_request('HEAD', bucket, objectname)
+            if resp.status < 200 or resp.status >= 300:
+                raise S3ResponseError(resp.status, resp.reason, resp.read())
+            for x in resp.getheaders():
+                if x[0] == 'content-length':
+                    return int(x[1])
+
+        resp = self.make_request('HEAD', bucket)
+        if resp.status < 200 or resp.status >= 300:
+            raise S3ResponseError(resp.status, resp.reason, resp.read())
+        headers = resp.getheaders()
+        return int(next((header[1] for header in headers
+                         if header[0] == 'x-rgw-bytes-used'), None))
+
     def put_random_object(self, bucket, objectname):
         # Create random object with random size
         # Returns size of object
@@ -366,8 +379,8 @@ class SwiftConn(swiftclient.Connection):
         # Returns bucket or object size
         if objectname:
             return int(self.head_object(container, objectname)['content-length'])
-        list_of_containers = self.get_account()[1]
-        return next((container_dict['bytes'] for container_dict in list_of_containers if container_dict['name'] == container), None)
+        headers = self.head_container(container)
+        return int(headers['x-container-bytes-used'])
 
     def put_random_object(self, bucket, objectname):
         # Create random object with random size
