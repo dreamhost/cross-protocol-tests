@@ -74,3 +74,9 @@ Swift ACLs:
 Swift Public Write Containers:
     Changing the S3 bucket permissions overrides the Swift
         public write permission
+
+Custom Object metadata:
+    Updating object custom metadata using Swift/S3 will overwrite any
+        existing custom metadata
+    Object custom metadata can be updated with the header
+        'x-container-meta-{key}' which shouldn't be allowed
