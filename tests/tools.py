@@ -178,7 +178,7 @@ class S3Conn(boto.s3.connection.S3Connection):
         return resp
 
     def get_acl(self, bucket, objectname=None):
-        # Get the ACL of the bucket or file
+        # Returns the ACL of the bucket or file
         b = self.get_bucket(bucket)
         if objectname:
             k = Key(b)
@@ -187,7 +187,8 @@ class S3Conn(boto.s3.connection.S3Connection):
         return b.get_acl()
 
     def add_public_acl(self, permission, bucket, objectname=None):
-        # Add a public (Group) ACL
+        # Add a public (Group) ACL to the bucket or file
+        # Returns the ACL of the bucket or file
         grant = Grant(permission=permission, type='Group',
                       uri='http://acs.amazonaws.com/groups/global/AllUsers')
         b = self.get_bucket(bucket)
@@ -204,7 +205,8 @@ class S3Conn(boto.s3.connection.S3Connection):
         return b.get_acl()
 
     def add_private_acl(self, permission, username, bucket, objectname=None):
-        # Add a private (CanonicalUser) ACL
+        # Add a private (CanonicalUser) ACL to the bucket or file
+        # Returns the ACL of the bucket or file
         grant = Grant(permission=permission, type='CanonicalUser',
                       id=username, display_name=username)
         b = self.get_bucket(bucket)
@@ -221,7 +223,8 @@ class S3Conn(boto.s3.connection.S3Connection):
         return b.get_acl()
 
     def remove_public_acl(self, permission, bucket, objectname=None):
-        # Remove a public (Group) ACL
+        # Remove a public (Group) ACL to the bucket or file
+        # Returns the ACL of the bucket or file
         grant_type = 'Group'
         uri = 'http://acs.amazonaws.com/groups/global/AllUsers'
         b = self.get_bucket(bucket)
@@ -252,7 +255,8 @@ class S3Conn(boto.s3.connection.S3Connection):
         return b.get_acl()
 
     def remove_private_acl(self, permission, username, bucket, objectname=None):
-        # Remove a private (CanonicalUser) ACL
+        # Remove a private (CanonicalUser) ACL to the bucket or file
+        # Returns the ACL of the bucket or file
         grant_type = 'CanonicalUser'
         username = username
         b = self.get_bucket(bucket)
@@ -283,14 +287,14 @@ class S3Conn(boto.s3.connection.S3Connection):
         return b.get_acl()
 
     def compare_list_objects(self, bucket):
-        # Return object contents
+        # Returns object contents
         resp = self.make_request('GET', bucket)
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read())
         return resp.read()
 
     def get_md5(self, bucket, objectname):
-        # Return object md5
+        # Returns object md5
         # NOTE: The S3 API's 'etag' header contains the md5 hash in nested
         # quotes, eg. '"md5hash"'
         resp = self.make_request('HEAD', bucket, objectname)
@@ -301,7 +305,7 @@ class S3Conn(boto.s3.connection.S3Connection):
                 return x[1][1:-1]
 
     def get_size(self, bucket, objectname=None):
-        # Return size of bucket or object
+        # Returns size of bucket or object
         if objectname:
             # Returns object size
             resp = self.make_request('HEAD', bucket, objectname)
@@ -317,7 +321,8 @@ class S3Conn(boto.s3.connection.S3Connection):
             total_size += k.size
         return total_size
     def put_random_object(self, bucket, objectname):
-        # Return size of object
+        # Create random object with random size
+        # Returns size of object
         f = open('/dev/urandom', 'r')
         bytes = random.randint(1,30000)
         data = f.read(bytes)
@@ -327,6 +332,7 @@ class S3Conn(boto.s3.connection.S3Connection):
 
     def copy_object(self, bucket, objectname, destination_bucket,
                     destination_objectname):
+        # Copies object from bucket to destination bucket
         b = self.get_bucket(destination_bucket)
         b.copy_key(destination_objectname, bucket, objectname)
 
@@ -364,7 +370,8 @@ class SwiftConn(swiftclient.Connection):
         return next((container_dict['bytes'] for container_dict in list_of_containers if container_dict['name'] == container), None)
 
     def put_random_object(self, bucket, objectname):
-        # Returns object size
+        # Create random object with random size
+        # Returns size of object
         f = open('/dev/urandom', 'r')
         bytes = random.randint(1,30000)
         data = f.read(bytes)
@@ -374,6 +381,7 @@ class SwiftConn(swiftclient.Connection):
 
     def copy_object(self, bucket, objectname, destination_bucket,
                     destination_objectname):
+        # Copies object from bucket to destination bucket
         self.put_object(container=destination_bucket,
                         obj=destination_objectname,
                         contents=None,
