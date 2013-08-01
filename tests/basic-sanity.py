@@ -436,3 +436,49 @@ def test_size_accounting_remove_mixed_objects():
                       s3conn.delete_object])(bucket, objectname)
     # Sizes must be equal
     eq(s3conn.get_size(bucket), swiftconn.get_size(bucket))
+
+
+def generate_random_string(length=8):
+    return ''.join(random.choice('abcdefghijklmnopqrstuvwxyz1234567890') for x in range(length))
+
+def test_object_custom_swift_metadata():
+    bucket = create_valid_name()
+    objectname = 'metadata-object'
+    text = 'object with user metadata'
+    # Create bucket and object
+    swiftconn = get_swiftconn()
+    swiftconn.put_container(bucket)
+    swiftconn.put_object(bucket, objectname, text)
+    # Create a random number of metadata tags using S3
+    num_files = random.randint(1, 10)
+    metadata = []
+    for i in range(num_files):
+        key = generate_random_string()
+        value = generate_random_string()
+        metadata += [(key, value)]
+    swiftconn.add_metadata(bucket, objectname, metadata)
+    s3conn = get_s3conn()
+    eq(sorted(metadata), sorted(swiftconn.list_metadata(bucket, objectname)))
+    eq(sorted(metadata), sorted(s3conn.list_metadata(bucket, objectname)))
+
+def test_object_custom_s3_metadata():
+    bucket = create_valid_name()
+    objectname = 'metadata-object'
+    text = 'object with user metadata'
+    # Create bucket and object
+    s3conn = get_s3conn()
+    s3conn.put_bucket(bucket)
+    s3conn.put_object(bucket, objectname, text)
+    # Create a random number of metadata tags using S3
+    num_files = random.randint(1, 10)
+    metadata = []
+    for i in range(num_files):
+        key = generate_random_string()
+        value = generate_random_string()
+        metadata += [(key, value)]
+    s3conn.add_metadata(bucket, objectname, metadata)
+    swiftconn = get_swiftconn()
+    eq(sorted(metadata), sorted(swiftconn.list_metadata(bucket, objectname)))
+    eq(sorted(metadata), sorted(s3conn.list_metadata(bucket, objectname)))
+
+# NOTE: Adding S3/Swift metadata overwrites already existing custom metadata

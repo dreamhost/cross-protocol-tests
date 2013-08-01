@@ -156,26 +156,45 @@ class S3Conn(boto.s3.connection.S3Connection):
         k.set_contents_from_string(data)
         """
 
-    def post_account(self):
-        # Unnecessary? Add headers eventually
-        resp = self.make_request('POST')
+    def post_account(self, headers=None):
+        # Unnecessary?
+        resp = self.make_request('POST', headers=headers)
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read())
-        return resp
 
-    def post_bucket(self, bucket):
-        # Unnecessary? Add headers eventually
-        resp = self.make_request('POST', bucket)
+    def post_bucket(self, bucket, headers=None):
+        # Unnecessary?
+        resp = self.make_request('POST', bucket, headers=headers)
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read())
-        return resp
 
-    def post_object(self, bucket, objectname):
-        # Unnecessary? Add headers eventually
-        resp = self.make_request('POST', bucket, objectname)
+    def post_object(self, bucket, objectname, headers=None):
+        # Post object with headers
+        resp = self.make_request('POST', bucket, objectname, headers=headers)
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read())
-        return resp
+
+    def add_metadata(self, bucket, objectname, key_value_pairs):
+        headers = {}
+        for pair in key_value_pairs:
+            key, value = pair
+            headers['x-amz-meta-'+key] = value
+        resp = self.make_request('PUT', bucket, objectname, headers=headers)
+        if resp.status < 200 or resp.status >= 300:
+            raise S3ResponseError(resp.status, resp.reason, resp.read())
+
+    def list_metadata(self, bucket, objectname):
+        # Returns list of custom metadata
+        resp = self.make_request('HEAD', bucket, objectname)
+        if resp.status < 200 or resp.status >= 300:
+            raise S3ResponseError(resp.status, resp.reason, resp.read())
+        headers = resp.getheaders()
+        metadata = []
+        for header in headers:
+            key, value = header
+            if key.startswith('x-amz-meta-'):
+                metadata += [(key[len('x-amz-meta-'):], value)]
+        return metadata
 
     def get_acl(self, bucket, objectname=None):
         # Returns the ACL of the bucket or file
@@ -305,18 +324,6 @@ class S3Conn(boto.s3.connection.S3Connection):
                 return x[1][1:-1]
 
     def get_size(self, bucket, objectname=None):
-        # Returns bucket or object size
-        if objectname:
-            # Returns object size
-            resp = self.make_request('HEAD', bucket, objectname)
-            if resp.status < 200 or resp.status >= 300:
-                raise S3ResponseError(resp.status, resp.reason, resp.read())
-            for x in resp.getheaders():
-                if x[0] == 'content-length':
-                    return int(x[1])
-        headers = self.make_request('HEAD', bucket)
-        return int(headers['x-container-bytes-used'])
-
         # Returns size of bucket or object
         if objectname:
             resp = self.make_request('HEAD', bucket, objectname)
@@ -399,6 +406,24 @@ class SwiftConn(swiftclient.Connection):
                         obj=destination_objectname,
                         contents=None,
                         headers={'x-copy-from':bucket+'/'+objectname})
+
+    def add_metadata(self, bucket, objectname, key_value_pairs):
+        # Add metadata to the object
+        headers = {}
+        for pair in key_value_pairs:
+            key, value = pair
+            headers['x-object-meta-'+key] = value
+        self.post_object(bucket, objectname, headers=headers)
+
+    def list_metadata(self, bucket, objectname):
+        # Returns list of custom metadata
+        headers = self.head_object(bucket, objectname)
+        metadata = []
+        for header in headers:
+            if header.startswith('x-object-meta-'):
+                metadata += [(header[len('x-object-meta-'):], headers[header])]
+        return metadata
+
 
 class HTTPConn(httplib.HTTPConnection):
     """
