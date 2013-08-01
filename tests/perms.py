@@ -13,10 +13,8 @@ import unittest
 from nose.tools import eq_ as eq
 
 
-#
 # ASSUMPTION: If an unauthorized user can perform a certain request,
 #             any Swift/S3 account on the RadosGW can do the same
-#
 
 
 # USERNAME of the second (non-main) account
@@ -28,14 +26,14 @@ def create_swift_container_with_acl(acl_headers):
     # Create Swift container
     swiftconn = get_swiftconn()
     container = create_valid_name()
-    ### Note: Bobtail does not support updating container ACLs using PUT
+    ### No support for creating container ACLs using PUT
     swiftconn.put_container(container)
     swiftconn.post_container(container, acl_headers)
     return container
 
 
 def create_s3_bucket_with_acl(permission, username=None):
-    # Create S3 container
+    # Create S3 container with specified ACL
     s3conn = get_s3conn()
     bucket = create_valid_name()
     s3conn.put_bucket(bucket)

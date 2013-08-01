@@ -60,6 +60,11 @@ Permissions in Swift:
     Object:
         (No object permissions)
 
+Swift ACLs:
+    Cannot create containers with custom ACL using a PUT request,
+        must use a POST request updating the ACL after the container
+        is created
+
 "Unauthorized user" using HTTPConnection:
     Using the path /gateway/swift/bucket/object is the same as
         using the path /gateway/bucket/object

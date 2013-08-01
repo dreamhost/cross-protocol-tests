@@ -16,7 +16,7 @@ import random
 import sys
 
 
-## FROM https://github.com/ceph/swift/blob/master/test/__init__.py
+# FROM https://github.com/ceph/swift/blob/master/test/__init__.py
 def get_config():
     """
     Attempt to get a functional config dictionary.
@@ -73,7 +73,7 @@ class S3Conn(boto.s3.connection.S3Connection):
     Adapter/Wrapper class for boto's S3Connection
     """
     def head_account(self):
-        # Get account stats (returns headers in dictionary format)
+        # Get account stats (returns a dictionary of headers)
         resp = self.make_request('HEAD')
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read())
@@ -83,7 +83,7 @@ class S3Conn(boto.s3.connection.S3Connection):
         return headers
 
     def head_bucket(self, bucket):
-        # Get bucket stats (returns headers in dictionary format)
+        # Get bucket stats (returns a dictionary of headers)
         resp = self.make_request('HEAD', bucket)
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read())
@@ -93,7 +93,7 @@ class S3Conn(boto.s3.connection.S3Connection):
         return headers
 
     def head_object(self, bucket, objectname):
-        # Get object stats (returns headers in dictionary format)
+        # Get object stats (returns a dictionary of headers)
         resp = self.make_request('HEAD', bucket, objectname)
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read())
@@ -103,13 +103,13 @@ class S3Conn(boto.s3.connection.S3Connection):
         return headers
 
     def list_buckets(self):
-        # Returns list of buckets
+        # Returns a list of buckets
         buckets = self.get_all_buckets()
         list_of_buckets = [bucket.name for bucket in buckets]
         return list_of_buckets
 
     def list_objects(self, bucket):
-        # Returns list of objects in a bucket
+        # Returns a list of objects in a bucket
         bucket = self.get_bucket(bucket)
         list_of_objects = [obj.key for obj in bucket.list()]
         return list_of_objects
@@ -122,27 +122,34 @@ class S3Conn(boto.s3.connection.S3Connection):
         return resp.read()
 
     def delete_bucket(self, bucket):
+        # Delete bucket
         resp = self.make_request('DELETE', bucket)
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read())
 
     def delete_object(self, bucket, objectname):
+        # Delete object
         resp = self.make_request('DELETE', bucket, objectname)
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read())
 
     def put_bucket(self, bucket):
+        # Create bucket
         resp = self.make_request('PUT', bucket)
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read())
-        ## EASIER?
-        # self.create_bucket(bucket)
+        """
+        ALTERNATIVE METHOD:
+        self.create_bucket(bucket)
+        """
 
     def put_object(self, bucket, objectname, data):
+        # Create object
         resp = self.make_request('PUT', bucket, objectname, data=data)
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read())
         """
+        ALTERNATIVE METHOD:
         b = self.get_bucket(bucket)
         k = Key(b)
         k.key = objectname
@@ -283,7 +290,9 @@ class S3Conn(boto.s3.connection.S3Connection):
         return resp.read()
 
     def get_md5(self, bucket, objectname):
-        # Returns object md5
+        # Return object md5
+        # NOTE: The S3 API's 'etag' header contains the md5 hash in nested
+        # quotes, eg. '"md5hash"'
         resp = self.make_request('HEAD', bucket, objectname)
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read())
@@ -292,6 +301,7 @@ class S3Conn(boto.s3.connection.S3Connection):
                 return x[1][1:-1]
 
     def get_size(self, bucket, objectname=None):
+        # Return size of bucket or object
         if objectname:
             # Returns object size
             resp = self.make_request('HEAD', bucket, objectname)
@@ -307,7 +317,7 @@ class S3Conn(boto.s3.connection.S3Connection):
             total_size += k.size
         return total_size
     def put_random_object(self, bucket, objectname):
-        # Returns object size
+        # Return size of object
         f = open('/dev/urandom', 'r')
         bytes = random.randint(1,30000)
         data = f.read(bytes)
@@ -325,21 +335,21 @@ class SwiftConn(swiftclient.Connection):
     Adapter/Wrapper class for swiftclient's Connection
     """
     def list_containers(self):
-        # Returns list of containers
+        # Returns a list of containers
         containers = self.get_account()[1]
         list_of_containers = [container_dict[u'name']
                               for container_dict in containers]
         return list_of_containers
 
     def list_objects(self, container):
-        # Returns list of objects
+        # Returns a list of objects
         objects = self.get_container(container)[1]
         list_of_objects = [object_dictionary[u'name']
                            for object_dictionary in objects]
         return list_of_objects
 
     def get_contents(self, container, objectname):
-        # Return object get_contents
+        # Return object contents
         return self.get_object(container, objectname)[1]
 
     def get_md5(self, container, objectname):
@@ -347,8 +357,7 @@ class SwiftConn(swiftclient.Connection):
         return self.head_object(container, objectname)['etag']
 
     def get_size(self, container, objectname=None):
-        # Returns bucket content-length
-        # Returns object content-length
+        # Returns bucket or object size
         if objectname:
             return int(self.head_object(container, objectname)['content-length'])
         list_of_containers = self.get_account()[1]
@@ -375,6 +384,7 @@ class HTTPConn(httplib.HTTPConnection):
     Adapter/Wrapper class for httplib's HTTPConn
     """
     def get_contents(self, bucket, objectname):
+        # Returns object contents
         self.request('GET', '/'+bucket+'/'+objectname)
         resp = self.getresponse()
         if resp.status < 200 or resp.status >= 300:
@@ -382,6 +392,7 @@ class HTTPConn(httplib.HTTPConnection):
         return resp.read()
 
     def put_object(self, bucket, objectname, data):
+        # Create object
         self.request('PUT', '/'+bucket+'/'+objectname, body=data)
         resp = self.getresponse()
         if resp.status < 200 or resp.status >= 300:
@@ -389,6 +400,7 @@ class HTTPConn(httplib.HTTPConnection):
         return resp
 
     def delete_object(self, bucket, objectname):
+        # Delete object
         self.request('DELETE', '/'+bucket+'/'+objectname)
         resp = self.getresponse()
         if resp.status < 200 or resp.status >= 300:
@@ -396,6 +408,7 @@ class HTTPConn(httplib.HTTPConnection):
         return resp
 
     def list_objects(self, bucket):
+        # List objects
         self.request('GET', '/'+bucket)
         resp = self.getresponse()
         if resp.status < 200 or resp.status >= 300:
