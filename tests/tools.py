@@ -255,7 +255,7 @@ class S3Conn(boto.s3.connection.S3Connection):
             for grant in policy.acl.grants:
                 if grant.permission == permission and grant.uri == uri \
                    and grant.type == grant_type:
-                   continue
+                    continue
                 else:
                     new_grants.append(grant)
             policy.acl.grants = new_grants
@@ -266,14 +266,15 @@ class S3Conn(boto.s3.connection.S3Connection):
         for grant in policy.acl.grants:
             if grant.permission == permission and grant.uri == uri \
                and grant.type == grant_type:
-               continue
+                continue
             else:
                 new_grants.append(grant)
         policy.acl.grants = new_grants
         b.set_acl(policy)
         return b.get_acl()
 
-    def remove_private_acl(self, permission, username, bucket, objectname=None):
+    def remove_private_acl(self, permission, username,
+                           bucket, objectname=None):
         # Remove a private (CanonicalUser) ACL to the bucket or file
         # Returns the ACL of the bucket or file
         grant_type = 'CanonicalUser'
@@ -287,7 +288,7 @@ class S3Conn(boto.s3.connection.S3Connection):
             for grant in policy.acl.grants:
                 if grant.permission == permission and \
                    grant.type == grant_type and grant.id == username:
-                   continue
+                    continue
                 else:
                     new_grants.append(grant)
             policy.acl.grants = new_grants
@@ -298,7 +299,7 @@ class S3Conn(boto.s3.connection.S3Connection):
         for grant in policy.acl.grants:
             if grant.permission == permission and \
                grant.type == grant_type and grant.id == username:
-               continue
+                continue
             else:
                 new_grants.append(grant)
         policy.acl.grants = new_grants
@@ -344,7 +345,7 @@ class S3Conn(boto.s3.connection.S3Connection):
         # Create random object with random size
         # Returns size of object
         f = open('/dev/urandom', 'r')
-        bytes = random.randint(1,30000)
+        bytes = random.randint(1, 30000)
         data = f.read(bytes)
         f.close()
         self.put_object(bucket, objectname, data)
@@ -355,6 +356,7 @@ class S3Conn(boto.s3.connection.S3Connection):
         # Copies object from bucket to destination bucket
         b = self.get_bucket(destination_bucket)
         b.copy_key(destination_objectname, bucket, objectname)
+
 
 class SwiftConn(swiftclient.Connection):
     """
@@ -385,7 +387,8 @@ class SwiftConn(swiftclient.Connection):
     def get_size(self, container, objectname=None):
         # Returns bucket or object size
         if objectname:
-            return int(self.head_object(container, objectname)['content-length'])
+            return int(self.head_object(container, objectname)
+                       ['content-length'])
         headers = self.head_container(container)
         return int(headers['x-container-bytes-used'])
 
@@ -393,7 +396,7 @@ class SwiftConn(swiftclient.Connection):
         # Create random object with random size
         # Returns size of object
         f = open('/dev/urandom', 'r')
-        bytes = random.randint(1,30000)
+        bytes = random.randint(1, 30000)
         data = f.read(bytes)
         f.close()
         self.put_object(bucket, objectname, data)
@@ -405,7 +408,7 @@ class SwiftConn(swiftclient.Connection):
         self.put_object(container=destination_bucket,
                         obj=destination_objectname,
                         contents=None,
-                        headers={'x-copy-from':bucket+'/'+objectname})
+                        headers={'x-copy-from': bucket+'/'+objectname})
 
     def add_metadata(self, bucket, objectname, key_value_pairs):
         # Add metadata to the object

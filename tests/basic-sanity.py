@@ -3,7 +3,9 @@ import boto.s3.connection
 import swiftclient
 
 import random
+import string
 
+from nose.tools import eq_ as eq
 from nose.tools import with_setup
 
 from tools import assert_raises
@@ -11,7 +13,6 @@ from tools import create_valid_name
 from tools import get_s3conn
 from tools import get_swiftconn
 
-from nose.tools import eq_ as eq
 
 ## BUCKET TESTS
 
@@ -370,6 +371,7 @@ def test_copy_s3_object():
        swiftconn.get_size(destination_bucket, destination_objectname))
 
 
+## TEST SIZE ACCOUNT IN S3/SWIFT BUCKETS
 def test_size_accounting_s3_objects():
     # Create bucket
     s3conn = get_s3conn()
@@ -438,10 +440,12 @@ def test_size_accounting_remove_mixed_objects():
     eq(s3conn.get_size(bucket), swiftconn.get_size(bucket))
 
 
+## TEST CUSTOM OBJECT METADATA
 def generate_random_string(length=8):
-    return ''.join(random.choice('abcdefghijklmnopqrstuvwxyz1234567890') for x in range(length))
+    return ''.join(random.choice(string.ascii_lowercase + string.digits) for x in range(length))
 
-def test_object_custom_swift_metadata():
+
+def test_swift_object_custom_metadata():
     bucket = create_valid_name()
     objectname = 'metadata-object'
     text = 'object with user metadata'
@@ -461,7 +465,8 @@ def test_object_custom_swift_metadata():
     eq(sorted(metadata), sorted(swiftconn.list_metadata(bucket, objectname)))
     eq(sorted(metadata), sorted(s3conn.list_metadata(bucket, objectname)))
 
-def test_object_custom_s3_metadata():
+
+def test_s3_object_custom_metadata():
     bucket = create_valid_name()
     objectname = 'metadata-object'
     text = 'object with user metadata'
