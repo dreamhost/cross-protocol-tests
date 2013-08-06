@@ -379,12 +379,15 @@ def test_size_accounting_s3_objects():
     s3conn.put_bucket(bucket)
     # Create a random number of objects using S3
     num_files = random.randint(1, 10)
+    total_size = 0
     for i in range(num_files):
         objectname = 'test-object' + str(i)
-        s3conn.put_random_object(bucket, objectname)
+        total_size += s3conn.put_random_object(bucket, objectname)
     # Sizes must be equal
     swiftconn = get_swiftconn()
     eq(s3conn.get_size(bucket), swiftconn.get_size(bucket))
+    eq(total_size, s3conn.get_size(bucket))
+    eq(total_size, swiftconn.get_size(bucket))
 
 
 def test_size_accounting_swift_objects():
@@ -394,12 +397,15 @@ def test_size_accounting_swift_objects():
     swiftconn.put_container(bucket)
     # Create a random number of objects using Swift
     num_files = random.randint(1, 10)
+    total_size = 0
     for i in range(num_files):
         objectname = 'test-object' + str(i)
-        swiftconn.put_random_object(bucket, objectname)
+        total_size += swiftconn.put_random_object(bucket, objectname)
     # Sizes must be equal
     s3conn = get_swiftconn()
     eq(s3conn.get_size(bucket), swiftconn.get_size(bucket))
+    eq(total_size, s3conn.get_size(bucket))
+    eq(total_size, swiftconn.get_size(bucket))
 
 
 def test_size_accounting_mixed_objects():
@@ -410,13 +416,15 @@ def test_size_accounting_mixed_objects():
     s3conn.put_bucket(bucket)
     # Create a random number of objects using S3/Swift
     num_files = random.randint(1, 10)
+    total_size = 0
     for i in range(num_files):
         objectname = 'test-object' + str(i)
-        random.choice([swiftconn.put_random_object,
+        total_size += random.choice([swiftconn.put_random_object,
                       s3conn.put_random_object])(bucket, objectname)
     # Sizes must be equal
     eq(s3conn.get_size(bucket), swiftconn.get_size(bucket))
-
+    eq(total_size, s3conn.get_size(bucket))
+    eq(total_size, swiftconn.get_size(bucket))
 
 def test_size_accounting_remove_mixed_objects():
     # Create bucket
@@ -426,19 +434,23 @@ def test_size_accounting_remove_mixed_objects():
     s3conn.put_bucket(bucket)
     # Create a random number of objects using S3/Swift
     num_files = random.randint(1, 10)
+    total_size = 0
     for i in range(num_files):
         objectname = 'test-object' + str(i)
-        random.choice([swiftconn.put_random_object,
+        total_size += random.choice([swiftconn.put_random_object,
                       s3conn.put_random_object])(bucket, objectname)
     # Remove a random number of objects using S3/Swift
     remove_files = random.randint(1, num_files)
     for i in range(remove_files):
         objectname = 'test-object' + str(i)
+        total_size -= random.choice([swiftconn.get_size,
+                      s3conn.get_size])(bucket, objectname)
         random.choice([swiftconn.delete_object,
                       s3conn.delete_object])(bucket, objectname)
     # Sizes must be equal
     eq(s3conn.get_size(bucket), swiftconn.get_size(bucket))
-
+    eq(total_size, s3conn.get_size(bucket))
+    eq(total_size, swiftconn.get_size(bucket))
 
 ## TEST CUSTOM OBJECT METADATA
 def generate_random_string(length=8):

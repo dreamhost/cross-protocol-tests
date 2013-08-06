@@ -915,10 +915,10 @@ class S3BucketReadPermissions(object):
         swiftconn.put_object(bucket, objectname, text)
         # List objects using S3 (second user)
         s3user = get_s3user()
-        eq(s3user.list_objects(bucket, objectname), [objectname])
+        eq(s3user.list_objects(bucket), [objectname])
         # List objects using Swift (second user)
         swiftuser = get_swiftuser()
-        eq(swiftuser.list_objects(bucket, objectname), [objectname])
+        eq(swiftuser.list_objects(bucket), [objectname])
 
     def test_read_bucket_with_default_s3_object(self):
         bucket = self.bucket
@@ -929,10 +929,10 @@ class S3BucketReadPermissions(object):
         s3conn.put_object(bucket, objectname, text)
         # List objects using S3 (second user)
         s3user = get_s3user()
-        eq(s3user.list_objects(bucket, objectname), [objectname])
+        eq(s3user.list_objects(bucket), [objectname])
         # List objects using Swift (second user)
         swiftuser = get_swiftuser()
-        eq(swiftuser.list_objects(bucket, objectname), [objectname])
+        eq(swiftuser.list_objects(bucket), [objectname])
 
     def test_read_bucket_with_public_read_s3_object(self):
         bucket = self.bucket
@@ -944,10 +944,10 @@ class S3BucketReadPermissions(object):
         s3conn.add_public_acl('READ', bucket, objectname)
         # List objects using S3 (second user)
         s3user = get_s3user()
-        eq(s3user.list_objects(bucket, objectname), [objectname])
+        eq(s3user.list_objects(bucket), [objectname])
         # List objects using Swift (second user)
         swiftuser = get_swiftuser()
-        eq(swiftuser.list_objects(bucket, objectname), [objectname])
+        eq(swiftuser.list_objects(bucket), [objectname])
 
     def test_read_bucket_with_private_read_s3_object(self):
         bucket = self.bucket
@@ -959,10 +959,10 @@ class S3BucketReadPermissions(object):
         s3conn.add_private_acl('READ', username, bucket, objectname)
         # List objects using S3 (second user)
         s3user = get_s3user()
-        eq(s3user.list_objects(bucket, objectname), [objectname])
+        eq(s3user.list_objects(bucket), [objectname])
         # List objects using Swift (second user)
         swiftuser = get_swiftuser()
-        eq(swiftuser.list_objects(bucket, objectname), [objectname])
+        eq(swiftuser.list_objects(bucket), [objectname])
 
     def test_read_bucket_with_public_full_control_s3_object(self):
         # Create public read S3 object (main user)
@@ -974,10 +974,10 @@ class S3BucketReadPermissions(object):
         s3conn.add_public_acl('FULL_CONTROL', bucket, objectname)
         # List objects using S3 (second user)
         s3user = get_s3user()
-        eq(s3user.list_objects(bucket, objectname), [objectname])
+        eq(s3user.list_objects(bucket), [objectname])
         # List objects using Swift (second user)
         swiftuser = get_swiftuser()
-        eq(swiftuser.list_objects(bucket, objectname), [objectname])
+        eq(swiftuser.list_objects(bucket), [objectname])
 
     def test_read_bucket_with_private_full_control_s3_object(self):
         bucket = self.bucket
@@ -989,10 +989,10 @@ class S3BucketReadPermissions(object):
         s3conn.add_private_acl('FULL_CONTROL', username, bucket, objectname)
         # List objects using S3 (second user)
         s3user = get_s3user()
-        eq(s3user.list_objects(bucket, objectname), [objectname])
+        eq(s3user.list_objects(bucket), [objectname])
         # List objects using Swift (second user)
         swiftuser = get_swiftuser()
-        eq(swiftuser.list_objects(bucket, objectname), [objectname])
+        eq(swiftuser.list_objects(bucket), [objectname])
 
 
 class TestPublicReadS3Bucket(unittest.TestCase, S3BucketReadPermissions):
