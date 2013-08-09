@@ -499,3 +499,65 @@ def test_s3_object_custom_metadata():
     eq(sorted(metadata), sorted(s3conn.list_metadata(bucket, objectname)))
 
 # NOTE: Adding S3/Swift metadata overwrites already existing custom metadata
+
+# CHECK IF METADATA IS COPIED CORRECTLY
+
+def test_copy_swift_object_metadata():
+    # Create buckets
+    s3conn = get_s3conn()
+    bucket = create_valid_name()
+    s3conn.put_bucket(bucket)
+    destination_bucket = create_valid_name()
+    s3conn.put_bucket(destination_bucket)
+    # Create object using S3
+    s3conn = get_s3conn()
+    objectname = 'test-object'
+    destination_objectname = 'test-object'
+    s3conn.put_random_object(bucket, objectname)
+    # Create a random number of metadata tags using S3
+    num_files = random.randint(1, 10)
+    metadata = []
+    for i in range(num_files):
+        key = generate_random_string()
+        value = generate_random_string()
+        metadata += [(key, value)]
+    swiftconn.add_metadata(bucket, objectname, metadata)
+    # Copy object using Swift
+    swiftconn = get_swiftconn()
+    swiftconn.copy_object(bucket, objectname, destination_bucket,
+                          destination_objectname)
+    # Check metadata
+    eq(sorted(metadata), sorted(swiftconn.list_metadata(destination_bucket,
+                                destination_objectname)))
+    eq(sorted(metadata), sorted(s3conn.list_metadata(destination_bucket,
+                                destination_objectname)))
+
+def test_copy_s3_object_metadata():
+    # Create containers
+    swiftconn = get_swiftconn()
+    bucket = create_valid_name()
+    swiftconn.put_container(bucket)
+    destination_bucket = create_valid_name()
+    swiftconn.put_container(destination_bucket)
+    # Create object using Swift
+    swiftconn = get_s3conn()
+    objectname = 'test-object'
+    destination_objectname = 'test-object'
+    swiftconn.put_random_object(bucket, objectname)
+    # Create a random number of metadata tags using S3
+    num_files = random.randint(1, 10)
+    metadata = []
+    for i in range(num_files):
+        key = generate_random_string()
+        value = generate_random_string()
+        metadata += [(key, value)]
+    s3conn.add_metadata(bucket, objectname, metadata)
+    # Copy object using S3
+    s3conn = get_s3conn()
+    s3conn.copy_object(bucket, objectname, destination_bucket,
+                       destination_objectname)
+    # Check metadata
+    eq(sorted(metadata), sorted(swiftconn.list_metadata(destination_bucket,
+                                destination_objectname)))
+    eq(sorted(metadata), sorted(s3conn.list_metadata(destination_bucket,
+                                destination_objectname)))
