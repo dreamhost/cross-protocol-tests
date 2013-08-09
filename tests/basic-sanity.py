@@ -13,7 +13,8 @@ from tools import create_valid_name
 from tools import get_s3conn
 from tools import get_swiftconn
 
-
+import boto
+import swiftclient
 ## BUCKET TESTS
 
 
@@ -499,3 +500,26 @@ def test_s3_object_custom_metadata():
     eq(sorted(metadata), sorted(s3conn.list_metadata(bucket, objectname)))
 
 # NOTE: Adding S3/Swift metadata overwrites already existing custom metadata
+
+
+def test_s3_multipart_upload():
+    # Create bucket
+    s3conn = get_s3conn()
+    bucket = create_valid_name()
+    objectname = 'metadata-object'
+    s3conn.put_bucket(bucket)
+    b = s3conn.get_bucket(bucket)
+    mp = b.initiate_multipart_upload(objectname)
+    
+    
+    # Create a random number of objects using S3/Swift
+    num_files = random.randint(1, 10)
+    total_size = 0
+    for i in range(num_files):
+        objectname = 'test-object' + str(i)
+        total_size += random.choice([swiftconn.put_random_object,
+                      s3conn.put_random_object])(bucket, objectname)
+    # Sizes must be equal
+    eq(s3conn.get_size(bucket), swiftconn.get_size(bucket))
+    eq(total_size, s3conn.get_size(bucket))
+    eq(total_size, swiftconn.get_size(bucket))

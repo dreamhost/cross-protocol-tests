@@ -108,10 +108,14 @@ class S3Conn(boto.s3.connection.S3Connection):
         list_of_buckets = [bucket.name for bucket in buckets]
         return list_of_buckets
 
-    def list_objects(self, bucket):
+    def list_objects(self, bucket, prefix=None, delimiter=None):
+        # PREFIX should be of the form 'folder/subfolder/''
         # Returns a list of objects in a bucket
         bucket = self.get_bucket(bucket)
-        list_of_objects = [obj.key for obj in bucket.list()]
+        if prefix:
+            list_of_keys = [key.name for key in bucket.list(prefix, delimiter)]
+            return list_of_keys
+        list_of_objects = [key.name for key in bucket.list(delimiter=delimiter)]
         return list_of_objects
 
     def get_contents(self, bucket, objectname):
@@ -143,18 +147,17 @@ class S3Conn(boto.s3.connection.S3Connection):
         self.create_bucket(bucket)
         """
 
-    def put_object(self, bucket, objectname, data):
-        # Create object
-        resp = self.make_request('PUT', bucket, objectname, data=data)
-        if resp.status < 200 or resp.status >= 300:
-            raise S3ResponseError(resp.status, resp.reason, resp.read())
-        """
-        ALTERNATIVE METHOD:
+    def put_object(self, bucket, objectname, data, path=None):
         b = self.get_bucket(bucket)
+        if path:
+            full_key_name = os.path.join(path, objectname)
+            k = b.new_key(full_key_name)
+            k.set_contents_from_string(data)
+            return full_key_name 
         k = Key(b)
         k.key = objectname
         k.set_contents_from_string(data)
-        """
+        return k.key
 
     def post_account(self, headers=None):
         # Unnecessary?
@@ -356,7 +359,6 @@ class S3Conn(boto.s3.connection.S3Connection):
         # Copies object from bucket to destination bucket
         b = self.get_bucket(destination_bucket)
         b.copy_key(destination_objectname, bucket, objectname)
-
 
 class SwiftConn(swiftclient.Connection):
     """
