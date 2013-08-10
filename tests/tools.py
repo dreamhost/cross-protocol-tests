@@ -355,10 +355,10 @@ class S3Conn(boto.s3.connection.S3Connection):
         return bytes
 
     def copy_object(self, bucket, objectname, destination_bucket,
-                    destination_objectname):
+                    destination_objectname, preserve_acl=False):
         # Copies object from bucket to destination bucket
         b = self.get_bucket(destination_bucket)
-        b.copy_key(destination_objectname, bucket, objectname)
+        b.copy_key(destination_objectname, bucket, objectname, preserve_acl=preserve_acl)
 
 class SwiftConn(swiftclient.Connection):
     """

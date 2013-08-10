@@ -339,6 +339,9 @@ def test_copy_swift_object():
        s3conn.get_size(destination_bucket, destination_objectname))
     eq(swiftconn.get_size(bucket, objectname),
        swiftconn.get_size(destination_bucket, destination_objectname))
+    # Check contents
+    eq(s3conn.get_contents(bucket, objectname),
+       s3conn.get_contents(destination_bucket, destination_objectname))
 
 
 def test_copy_s3_object():
@@ -370,6 +373,9 @@ def test_copy_s3_object():
        s3conn.get_size(destination_bucket, destination_objectname))
     eq(swiftconn.get_size(bucket, objectname),
        swiftconn.get_size(destination_bucket, destination_objectname))
+    # Check contents
+    eq(swiftconn.get_contents(bucket, objectname),
+       swiftconn.get_contents(destination_bucket, destination_objectname))
 
 
 ## TEST SIZE ACCOUNT IN S3/SWIFT BUCKETS
@@ -501,6 +507,68 @@ def test_s3_object_custom_metadata():
 
 # NOTE: Adding S3/Swift metadata overwrites already existing custom metadata
 
+# CHECK IF METADATA IS COPIED CORRECTLY
+
+def test_copy_swift_object_metadata():
+    # Create buckets
+    s3conn = get_s3conn()
+    bucket = create_valid_name()
+    s3conn.put_bucket(bucket)
+    destination_bucket = create_valid_name()
+    s3conn.put_bucket(destination_bucket)
+    # Create object using S3
+    s3conn = get_s3conn()
+    objectname = 'test-object'
+    destination_objectname = 'test-object'
+    s3conn.put_random_object(bucket, objectname)
+    # Create a random number of metadata tags using S3
+    num_files = random.randint(1, 10)
+    metadata = []
+    for i in range(num_files):
+        key = generate_random_string()
+        value = generate_random_string()
+        metadata += [(key, value)]
+    s3conn.add_metadata(bucket, objectname, metadata)
+    # Copy object using Swift
+    swiftconn = get_swiftconn()
+    swiftconn.copy_object(bucket, objectname, destination_bucket,
+                          destination_objectname)
+    # Check metadata
+    eq(sorted(metadata), sorted(swiftconn.list_metadata(destination_bucket,
+                                destination_objectname)))
+    eq(sorted(metadata), sorted(s3conn.list_metadata(destination_bucket,
+                                destination_objectname)))
+
+def test_copy_s3_object_metadata():
+    # Create containers
+    swiftconn = get_swiftconn()
+    bucket = create_valid_name()
+    swiftconn.put_container(bucket)
+    destination_bucket = create_valid_name()
+    swiftconn.put_container(destination_bucket)
+    # Create object using Swift
+    swiftconn = get_s3conn()
+    objectname = 'test-object'
+    destination_objectname = 'test-object'
+    swiftconn.put_random_object(bucket, objectname)
+    # Create a random number of metadata tags using Swift
+    num_files = random.randint(1, 10)
+    metadata = []
+    for i in range(num_files):
+        key = generate_random_string()
+        value = generate_random_string()
+        metadata += [(key, value)]
+    swiftconn.add_metadata(bucket, objectname, metadata)
+    # Copy object using S3
+    s3conn = get_s3conn()
+    s3conn.copy_object(bucket, objectname, destination_bucket,
+                       destination_objectname)
+    # Check metadata
+    eq(sorted(metadata), sorted(swiftconn.list_metadata(destination_bucket,
+                                destination_objectname)))
+    eq(sorted(metadata), sorted(s3conn.list_metadata(destination_bucket,
+                                destination_objectname)))
+
 
 def test_s3_multipart_upload():
     # Create bucket
@@ -510,16 +578,16 @@ def test_s3_multipart_upload():
     s3conn.put_bucket(bucket)
     b = s3conn.get_bucket(bucket)
     mp = b.initiate_multipart_upload(objectname)
-    
-    
     # Create a random number of objects using S3/Swift
     num_files = random.randint(1, 10)
     total_size = 0
-    for i in range(num_files):
-        objectname = 'test-object' + str(i)
-        total_size += random.choice([swiftconn.put_random_object,
-                      s3conn.put_random_object])(bucket, objectname)
-    # Sizes must be equal
-    eq(s3conn.get_size(bucket), swiftconn.get_size(bucket))
-    eq(total_size, s3conn.get_size(bucket))
-    eq(total_size, swiftconn.get_size(bucket))
+    for i in range(f):
+        num_files = open('/dev/urandom', 'rb')
+        bytes = random.randint(1, 30000)
+        total_size += bytes
+        data = f.read(bytes)
+        mp.upload_part_from_file(data, i + 1)
+        f.close()
+    for part in mp:
+        print part.part_number, part.size
+    mp.complete_upload()
