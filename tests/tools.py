@@ -52,11 +52,14 @@ def assert_raises(excClass, callableObj, *args, **kwargs):
         raise AssertionError("%s not raised" % excName)
 
 
-def create_valid_name():
+def create_valid_name(length=None):
     """
     Create a valid bucket name usable by both S3 and Swift
     """
-    name_length = random.randint(3, 63)
+    if length == None:
+        name_length = 15
+    else:
+        name_length = random.randint(3, 63)
     name = ''
     for x in range(name_length):
         if x == 0 or x == name_length - 1:
@@ -66,6 +69,22 @@ def create_valid_name():
         else:
             name += random.choice(chr(random.randint(97, 122)) + '-')
     return name
+
+
+# FROM https://github.com/ceph/swift/blob/master/test/functional/tests.py
+def create_valid_utf8_name(length=None):
+        if length == None:
+            length = 15
+        else:
+            length = int(length)
+
+        utf8_chars = u'\uF10F\uD20D\uB30B\u9409\u8508\u5605\u3703\u1801'\
+                     u'\u0900\uF110\uD20E\uB30C\u940A\u8509\u5606\u3704'\
+                     u'\u1802\u0901\uF111\uD20F\uB30D\u940B\u850A\u5607'\
+                     u'\u3705\u1803\u0902\uF112\uD210\uB30E\u940C\u850B'\
+                     u'\u5608\u3706\u1804\u0903\u03A9\u2603'
+        return ''.join([random.choice(utf8_chars) for x in \
+            xrange(length)]).encode('utf-8')
 
 
 class S3Conn(boto.s3.connection.S3Connection):
@@ -373,6 +392,7 @@ class SwiftConn(swiftclient.Connection):
 
     def list_objects(self, container):
         # Returns a list of objects
+        print >> sys.stderr, self.get_container(container)
         objects = self.get_container(container)[1]
         list_of_objects = [object_dictionary[u'name']
                            for object_dictionary in objects]
