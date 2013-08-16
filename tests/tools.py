@@ -166,17 +166,18 @@ class S3Conn(boto.s3.connection.S3Connection):
         self.create_bucket(bucket)
         """
 
-    def put_object(self, bucket, objectname, data, path=None):
+    def put_object(self, bucket, objectname, data):
+        # Create object
+        resp = self.make_request('PUT', bucket, objectname, data=data)
+        if resp.status < 200 or resp.status >= 300:
+            raise S3ResponseError(resp.status, resp.reason, resp.read())
+        """
+        ALTERNATIVE METHOD:
         b = self.get_bucket(bucket)
-        if path:
-            full_key_name = os.path.join(path, objectname)
-            k = b.new_key(full_key_name)
-            k.set_contents_from_string(data)
-            return full_key_name 
         k = Key(b)
         k.key = objectname
         k.set_contents_from_string(data)
-        return k.key
+        """
 
     def post_account(self, headers=None):
         # Unnecessary?
@@ -392,7 +393,6 @@ class SwiftConn(swiftclient.Connection):
 
     def list_objects(self, container):
         # Returns a list of objects
-        print >> sys.stderr, self.get_container(container)
         objects = self.get_container(container)[1]
         list_of_objects = [object_dictionary[u'name']
                            for object_dictionary in objects]

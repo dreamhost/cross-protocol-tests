@@ -668,22 +668,3 @@ class TestBasicSanity():
 class TestBasicSanityUTF8(TestBasicSanity):
     def setUp(self):
         create_valid_name = create_valid_utf8_name
-
-def folder():
-    # Create bucket
-    s3conn = get_s3conn()
-    bucket = create_valid_name()
-    objectname = 'folder/'
-    s3conn.put_bucket(bucket)
-    b = s3conn.get_bucket(bucket)
-    mp = b.initiate_multipart_upload(objectname)
-    d = open('/home/kevin/Desktop/cross-protocol-tests/tests/output.txt', 'rb')
-    mp.upload_part_from_file(d, 1)
-    d.close()
-    mp.complete_upload()
-
-    r=s3conn.make_request('GET', bucket, objectname)
-    print r.status
-    print r.getheaders()
-    print s3conn.list_objects(bucket)
-    print s3conn.head_object(bucket, objectname)

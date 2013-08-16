@@ -1361,8 +1361,7 @@ class TestPublicWriteS3Bucket(unittest.TestCase, S3BucketWritePermissions):
 
     def setUp(self):
         # Create a Swift public write container
-        self.bucket = create_swift_container_with_acl(
-            {'x-container-write': '.r:*'})
+        self.bucket = create_s3_bucket_with_acl('WRITE')
 
     def tearDown(self):
         delete_bucket(self.bucket)
@@ -1476,9 +1475,8 @@ class TestPublicWriteS3Bucket(unittest.TestCase, S3BucketWritePermissions):
 class TestPrivateWriteS3Bucket(unittest.TestCase, S3BucketWritePermissions):
 
     def setUp(self):
-        # Create a Swift public write container
-        self.bucket = create_swift_container_with_acl(
-            {'x-container-write': username})
+        # Create a S3 private write container
+        self.bucket = create_s3_bucket_with_acl('WRITE', username)
 
     def tearDown(self):
         delete_bucket(self.bucket)
