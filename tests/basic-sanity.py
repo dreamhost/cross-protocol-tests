@@ -6,17 +6,15 @@ import random
 import string
 
 from nose.tools import eq_ as eq
-from nose.tools import with_setup
 
-from tools import create_valid_utf8_name
 from tools import assert_raises
+from tools import create_valid_utf8_name
 from tools import create_valid_name
 from tools import get_s3conn
 from tools import get_swiftconn
 
 import StringIO
 import boto
-import swiftclient
 ## BUCKET TESTS
 
 
@@ -39,16 +37,22 @@ def delete_buckets():
 
 ## TEST CUSTOM OBJECT METADATA
 def generate_random_string(length=8):
-    return ''.join(random.choice(string.ascii_lowercase + string.digits) for x in range(length))
+    # Create random string for custom object metadata
+    return ''.join(random.choice(string.ascii_lowercase + string.digits)
+                   for x in range(length))
 
-class TestBasicSanity():
+
+class TestBasicCrossProtocol():
+
+    def create_name(self):
+        return create_valid_name()
 
     def test_list_buckets(self):
         # Delete all buckets
         delete_buckets()
         # Create bucket
         s3conn = get_s3conn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         s3conn.put_bucket(bucket)
 
         # Check list buckets
@@ -56,13 +60,12 @@ class TestBasicSanity():
         swiftconn = get_swiftconn()
         eq(swiftconn.list_containers(), [bucket])
 
-
     def test_list_container(self):
         # Delete all buckets
         delete_buckets()
         # Create container
         swiftconn = get_swiftconn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         swiftconn.put_container(bucket)
 
         # Check list containers
@@ -70,21 +73,19 @@ class TestBasicSanity():
         s3conn = get_s3conn()
         eq(s3conn.list_buckets(), [bucket])
 
-
     def test_list_empty_bucket(self):
         # Create bucket
         s3conn = get_s3conn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         s3conn.put_bucket(bucket)
         # Get list of objects
         swiftconn = get_swiftconn()
         eq(swiftconn.list_objects(bucket), [])
         eq(s3conn.list_objects(bucket), [])
 
-
     def test_list_empty_container(self):
         # Create container
-        bucket = create_valid_name()
+        bucket = self.create_name()
         swiftconn = get_swiftconn()
         swiftconn.put_container(bucket)
         # Get list of objects
@@ -92,41 +93,38 @@ class TestBasicSanity():
         eq(s3conn.list_objects(bucket), [])
         eq(swiftconn.list_objects(bucket), [])
 
-
     def test_list_nonempty_bucket(self):
         # Create bucket
         s3conn = get_s3conn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         s3conn.put_bucket(bucket)
         # Add test object using S3
-        objectname = create_valid_name()
+        objectname = self.create_name()
         text = 'test object text'
         s3conn.put_object(bucket, objectname, text)
         # Get list of objects using Swift
         swiftconn = get_swiftconn()
         eq(swiftconn.list_objects(bucket), [objectname])
 
-
     def test_list_nonempty_container(self):
         # Create container
-        bucket = create_valid_name()
+        bucket = self.create_name()
         swiftconn = get_swiftconn()
         swiftconn.put_container(bucket)
         # Add test object using Swift
-        objectname = create_valid_name()
+        objectname = self.create_name()
         text = 'test object text'
         swiftconn.put_object(bucket, objectname, text)
         # Get list of objects using S3
         s3conn = get_s3conn()
         eq(s3conn.list_objects(bucket), [objectname])
 
-
     def test_delete_bucket(self):
         # Delete all buckets
         delete_buckets()
         # Create bucket
         s3conn = get_s3conn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         s3conn.put_bucket(bucket)
         # Delete using Swift
         swiftconn = get_swiftconn()
@@ -146,13 +144,12 @@ class TestBasicSanity():
         eq(swift_err.http_response_content, 'NoSuchBucket')
         eq(s3_err.error_code, 'NoSuchBucket')
 
-
     def test_delete_container(self):
         # Delete all buckets
         delete_buckets()
         # Create bucket using Swift
         swiftconn = get_swiftconn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         swiftconn.put_container(bucket)
         # Delete using S3
         s3conn = get_s3conn()
@@ -172,14 +169,13 @@ class TestBasicSanity():
         eq(swift_err.http_response_content, 'NoSuchBucket')
         eq(s3_err.error_code, 'NoSuchBucket')
 
-
     def test_delete_non_empty_bucket(self):
         # Create bucket
         s3conn = get_s3conn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         s3conn.put_bucket(bucket)
         # Add test object using S3
-        objectname = create_valid_name()
+        objectname = self.create_name()
         text = 'test object text'
         s3conn.put_object(bucket, objectname, text)
         # Try to delete bucket using Swift
@@ -190,14 +186,13 @@ class TestBasicSanity():
         eq(swift_err.http_reason, 'Conflict')
         eq(swift_err.http_response_content, 'BucketNotEmpty')
 
-
     def test_delete_non_empty_container(self):
         # Create container
-        bucket = create_valid_name()
+        bucket = self.create_name()
         swiftconn = get_swiftconn()
         swiftconn.put_container(bucket)
         # Add test object using Swift
-        objectname = create_valid_name()
+        objectname = self.create_name()
         text = 'test object text'
         swiftconn.put_object(bucket, objectname, text)
         # Try to delete container using S3
@@ -208,100 +203,93 @@ class TestBasicSanity():
         eq(s3_err.reason, 'Conflict')
         eq(s3_err.error_code, 'BucketNotEmpty')
 
-
     ## OBJECT TESTS
     def test_list_object_in_bucket(self):
         # Create container using Swift
         swiftconn = get_swiftconn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         swiftconn.put_container(bucket)
         # Create object using S3
         s3conn = get_s3conn()
-        objectname = create_valid_name()
+        objectname = self.create_name()
         text = 'test object text'
         s3conn.put_object(bucket, objectname, text)
         # Check list of objects
         eq(swiftconn.list_objects(bucket), [objectname])
         eq(s3conn.list_objects(bucket), [objectname])
 
-
     def test_list_object_in_container(self):
         # Create bucket using S3
         s3conn = get_s3conn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         s3conn.put_bucket(bucket)
         # Create object using Swift
         swiftconn = get_swiftconn()
-        objectname = create_valid_name()
+        objectname = self.create_name()
         text = 'test object text'
         swiftconn.put_object(bucket, objectname, text)
         # Check list of objects
         eq(s3conn.list_objects(bucket), [objectname])
         eq(swiftconn.list_objects(bucket), [objectname])
 
-
     def test_size_object_in_container(self):
         # Create container
         swiftconn = get_swiftconn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         swiftconn.put_container(bucket)
         # Create object using S3
         s3conn = get_s3conn()
-        objectname = create_valid_name()
+        objectname = self.create_name()
         bytes = s3conn.put_random_object(bucket, objectname)
         # Check size
         eq(bytes, swiftconn.get_size(bucket, objectname))
 
-
     def test_size_object_in_bucket(self):
         # Create bucket
         s3conn = get_s3conn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         s3conn.put_bucket(bucket)
         # Create object using Swift
         swiftconn = get_swiftconn()
-        objectname = create_valid_name()
+        objectname = self.create_name()
         bytes = swiftconn.put_random_object(bucket, objectname)
         # Check size
         eq(bytes, s3conn.get_size(bucket, objectname))
 
-
     def test_checksum_object_in_container(self):
         # Create container
         swiftconn = get_swiftconn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         swiftconn.put_container(bucket)
         # Create object using S3
         s3conn = get_s3conn()
-        objectname = create_valid_name()
+        objectname = self.create_name()
         s3conn.put_random_object(bucket, objectname)
         # Check checksum
         eq(s3conn.get_md5(bucket, objectname),
            swiftconn.get_md5(bucket, objectname))
 
-
     def test_checksum_object_in_bucket(self):
         # Create bucket
         s3conn = get_s3conn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         s3conn.put_bucket(bucket)
         # Create object using Swift
         swiftconn = get_s3conn()
-        objectname = create_valid_name()
+        objectname = self.create_name()
         swiftconn.put_random_object(bucket, objectname)
         # Check checksum
         eq(s3conn.get_md5(bucket, objectname),
            swiftconn.get_md5(bucket, objectname))
 
-
     def test_delete_object_swift(self):
         # Create bucket
         s3conn = get_s3conn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         s3conn.put_bucket(bucket)
         # Create object using S3
         s3conn = get_s3conn()
-        objectname = create_valid_name()
+        objectname = self.create_name()
         s3conn.put_random_object(bucket, objectname)
         # Delete object with Swift
         swiftconn = get_swiftconn()
@@ -310,15 +298,14 @@ class TestBasicSanity():
         eq(s3conn.list_objects(bucket), [])
         eq(swiftconn.list_objects(bucket), [])
 
-
     def test_delete_object_s3(self):
         # Create container
         swiftconn = get_swiftconn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         swiftconn.put_container(bucket)
         # Create object using Swift
         swiftconn = get_s3conn()
-        objectname = create_valid_name()
+        objectname = self.create_name()
         swiftconn.put_random_object(bucket, objectname)
         # Delete object with S3
         s3conn = get_s3conn()
@@ -327,18 +314,17 @@ class TestBasicSanity():
         eq(s3conn.list_objects(bucket), [])
         eq(swiftconn.list_objects(bucket), [])
 
-
     def test_copy_swift_object(self):
         # Create buckets
         s3conn = get_s3conn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         s3conn.put_bucket(bucket)
-        destination_bucket = create_valid_name()
+        destination_bucket = self.create_name()
         s3conn.put_bucket(destination_bucket)
         # Create object using S3
         s3conn = get_s3conn()
-        objectname = create_valid_name()
-        destination_objectname = create_valid_name()
+        objectname = self.create_name()
+        destination_objectname = self.create_name()
         s3conn.put_random_object(bucket, objectname)
         # Copy object using Swift
         swiftconn = get_swiftconn()
@@ -346,7 +332,8 @@ class TestBasicSanity():
                               destination_objectname)
         # Check list of objects
         eq(s3conn.list_objects(destination_bucket), [destination_objectname])
-        eq(swiftconn.list_objects(destination_bucket), [destination_objectname])
+        eq(swiftconn.list_objects(destination_bucket),
+           [destination_objectname])
         # Check checksum
         eq(s3conn.get_md5(bucket, objectname),
            s3conn.get_md5(destination_bucket, destination_objectname))
@@ -361,18 +348,17 @@ class TestBasicSanity():
         eq(s3conn.get_contents(bucket, objectname),
            s3conn.get_contents(destination_bucket, destination_objectname))
 
-
     def test_copy_s3_object(self):
         # Create containers
         swiftconn = get_swiftconn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         swiftconn.put_container(bucket)
-        destination_bucket = create_valid_name()
+        destination_bucket = self.create_name()
         swiftconn.put_container(destination_bucket)
         # Create object using Swift
         swiftconn = get_s3conn()
-        objectname = create_valid_name()
-        destination_objectname = create_valid_name()
+        objectname = self.create_name()
+        destination_objectname = self.create_name()
         swiftconn.put_random_object(bucket, objectname)
         # Copy object using S3
         s3conn = get_s3conn()
@@ -395,18 +381,17 @@ class TestBasicSanity():
         eq(swiftconn.get_contents(bucket, objectname),
            swiftconn.get_contents(destination_bucket, destination_objectname))
 
-
     ## TEST SIZE ACCOUNT IN S3/SWIFT BUCKETS
     def test_size_accounting_s3_objects(self):
         # Create bucket
         s3conn = get_s3conn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         s3conn.put_bucket(bucket)
         # Create a random number of objects using S3
         num_files = random.randint(1, 10)
         total_size = 0
         for i in range(num_files):
-            objectname = create_valid_name() + str(i)
+            objectname = self.create_name() + str(i)
             total_size += s3conn.put_random_object(bucket, objectname)
         # Sizes must be equal
         swiftconn = get_swiftconn()
@@ -414,17 +399,16 @@ class TestBasicSanity():
         eq(total_size, s3conn.get_size(bucket))
         eq(total_size, swiftconn.get_size(bucket))
 
-
     def test_size_accounting_swift_objects(self):
         # Create bucket
         swiftconn = get_swiftconn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         swiftconn.put_container(bucket)
         # Create a random number of objects using Swift
         num_files = random.randint(1, 10)
         total_size = 0
         for i in range(num_files):
-            objectname = create_valid_name() + str(i)
+            objectname = self.create_name() + str(i)
             total_size += swiftconn.put_random_object(bucket, objectname)
         # Sizes must be equal
         s3conn = get_swiftconn()
@@ -432,18 +416,17 @@ class TestBasicSanity():
         eq(total_size, s3conn.get_size(bucket))
         eq(total_size, swiftconn.get_size(bucket))
 
-
     def test_size_accounting_mixed_objects(self):
         # Create bucket
         s3conn = get_s3conn()
         swiftconn = get_swiftconn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         s3conn.put_bucket(bucket)
         # Create a random number of objects using S3/Swift
         num_files = random.randint(1, 10)
         total_size = 0
         for i in range(num_files):
-            objectname = create_valid_name() + str(i)
+            objectname = self.create_name() + str(i)
             total_size += random.choice([swiftconn.put_random_object,
                           s3conn.put_random_object])(bucket, objectname)
         # Sizes must be equal
@@ -455,14 +438,14 @@ class TestBasicSanity():
         # Create bucket
         s3conn = get_s3conn()
         swiftconn = get_swiftconn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         s3conn.put_bucket(bucket)
         # Create a random number of objects using S3/Swift
         num_files = random.randint(1, 10)
         total_size = 0
         objectnames = []
         for i in range(num_files):
-            objectnames += [create_valid_name() + str(i)]
+            objectnames += [self.create_name() + str(i)]
             total_size += random.choice([swiftconn.put_random_object,
                           s3conn.put_random_object])(bucket, objectnames[i])
         # Remove a random number of objects using S3/Swift
@@ -478,11 +461,9 @@ class TestBasicSanity():
         eq(total_size, s3conn.get_size(bucket))
         eq(total_size, swiftconn.get_size(bucket))
 
-
-
     def test_swift_object_custom_metadata(self):
-        bucket = create_valid_name()
-        objectname = create_valid_name()
+        bucket = self.create_name()
+        objectname = self.create_name()
         text = 'test object with user metadata'
         # Create bucket and object
         swiftconn = get_swiftconn()
@@ -500,10 +481,9 @@ class TestBasicSanity():
         eq(sorted(metadata), sorted(swiftconn.list_metadata(bucket, objectname)))
         eq(sorted(metadata), sorted(s3conn.list_metadata(bucket, objectname)))
 
-
     def test_s3_object_custom_metadata(self):
-        bucket = create_valid_name()
-        objectname = create_valid_name()
+        bucket = self.create_name()
+        objectname = self.create_name()
         text = 'test object with user metadata'
         # Create bucket and object
         s3conn = get_s3conn()
@@ -528,14 +508,14 @@ class TestBasicSanity():
     def test_copy_swift_object_metadata(self):
         # Create buckets
         s3conn = get_s3conn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         s3conn.put_bucket(bucket)
-        destination_bucket = create_valid_name()
+        destination_bucket = self.create_name()
         s3conn.put_bucket(destination_bucket)
         # Create object using S3
         s3conn = get_s3conn()
-        objectname = create_valid_name()
-        destination_objectname = create_valid_name()
+        objectname = self.create_name()
+        destination_objectname = self.create_name()
         s3conn.put_random_object(bucket, objectname)
         # Create a random number of metadata tags using S3
         num_files = random.randint(1, 10)
@@ -558,14 +538,14 @@ class TestBasicSanity():
     def test_copy_s3_object_metadata(self):
         # Create containers
         swiftconn = get_swiftconn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         swiftconn.put_container(bucket)
-        destination_bucket = create_valid_name()
+        destination_bucket = self.create_name()
         swiftconn.put_container(destination_bucket)
         # Create object using Swift
         swiftconn = get_s3conn()
-        objectname = create_valid_name()
-        destination_objectname = create_valid_name()
+        objectname = self.create_name()
+        destination_objectname = self.create_name()
         swiftconn.put_random_object(bucket, objectname)
         # Create a random number of metadata tags using Swift
         num_files = random.randint(1, 10)
@@ -585,11 +565,10 @@ class TestBasicSanity():
         eq(sorted(metadata), sorted(s3conn.list_metadata(destination_bucket,
                                     destination_objectname)))
 
-
     def test_s3_multipart_upload(self):
         # Create bucket
         s3conn = get_s3conn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         objectname = 'multipart upload test object'
         s3conn.put_bucket(bucket)
         b = s3conn.get_bucket(bucket)
@@ -597,19 +576,6 @@ class TestBasicSanity():
         # Create a random number of objects using S3/Swift
         num_files = random.randint(1, 10)
         total_size = 0
-        """
-        for i in range(num_files):
-            d = open('/dev/urandom', 'rb')
-            bytes = random.randint(1, 300)
-            data = d.read(bytes)
-            total_size += bytes
-            f = open('testfile', 'w+')
-            f.write(data)
-            f.seek(0)
-            mp.upload_part_from_file(f, i + 1)
-            f.close()
-            d.close()
-        """
         for i in range(num_files):
             d = open('/dev/urandom', 'rb')
             bytes = random.randint(1, 300)
@@ -630,14 +596,13 @@ class TestBasicSanity():
         eq(s3conn.get_md5(bucket, objectname), swiftconn.get_md5(bucket, objectname))
         eq(s3conn.get_size(bucket, objectname), swiftconn.get_size(bucket, objectname))
 
-
     def test_s3_folders(self):
         # Create bucket and object using S3
         s3conn = get_s3conn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         s3conn.put_bucket(bucket)
-        folder = create_valid_name() + '/'
-        objectname = folder + create_valid_name()
+        folder = self.create_name() + '/'
+        objectname = folder + self.create_name()
         text = 'test object text'
         s3conn.put_object(bucket, objectname, text)
         # Check list of objects
@@ -647,14 +612,13 @@ class TestBasicSanity():
         # Content should be the same
         eq(s3conn.get_contents(bucket, objectname), swiftconn.get_contents(bucket, objectname))
 
-
     def test_swift_folders(self):
         # Create bucket and object using Swift
         swiftconn = get_swiftconn()
-        bucket = create_valid_name()
+        bucket = self.create_name()
         swiftconn.put_container(bucket)
-        folder = create_valid_name() + '/'
-        objectname = folder + create_valid_name()
+        folder = self.create_name() + '/'
+        objectname = folder + self.create_name()
         text = 'test object text'
         swiftconn.put_object(bucket, objectname, text)
         # Check list of objects
@@ -665,6 +629,7 @@ class TestBasicSanity():
         eq(s3conn.get_contents(bucket, objectname), swiftconn.get_contents(bucket, objectname))
 
 
-class TestBasicSanityUTF8(TestBasicSanity):
-    def setUp(self):
-        create_valid_name = create_valid_utf8_name
+class TestBasicSanityUTF8(TestBasicCrossProtocol):
+
+    def create_name(self):
+        return create_valid_utf8_name()

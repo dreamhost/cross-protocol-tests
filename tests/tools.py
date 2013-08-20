@@ -124,7 +124,7 @@ class S3Conn(boto.s3.connection.S3Connection):
     def list_buckets(self):
         # Returns a list of buckets
         buckets = self.get_all_buckets()
-        list_of_buckets = [bucket.name for bucket in buckets]
+        list_of_buckets = [(bucket.name).encode('utf-8') for bucket in buckets]
         return list_of_buckets
 
     def list_objects(self, bucket, prefix=None, delimiter=None):
@@ -387,14 +387,14 @@ class SwiftConn(swiftclient.Connection):
     def list_containers(self):
         # Returns a list of containers
         containers = self.get_account()[1]
-        list_of_containers = [container_dict[u'name']
+        list_of_containers = [(container_dict[u'name']).encode('utf-8')
                               for container_dict in containers]
         return list_of_containers
 
     def list_objects(self, container):
         # Returns a list of objects
         objects = self.get_container(container)[1]
-        list_of_objects = [object_dictionary[u'name']
+        list_of_objects = [(object_dictionary[u'name']).encode('utf-8')
                            for object_dictionary in objects]
         return list_of_objects
 
