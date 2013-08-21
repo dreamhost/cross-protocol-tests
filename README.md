@@ -1,44 +1,41 @@
-S3/SWIFT CROSS PROTOCOL TESTS
-====================
+# S3/SWIFT CROSS PROTOCOL TESTS FOR [CEPH OBJECT GATEWAY](http://ceph.com/docs/next/radosgw/) #
 
-Cross protocol tests for RADOS Gateway
+---
 
+## RUNNING THE TESTS ##
 
-basic-sanity.py
+*   Modify and rename sample_config.yaml to config.yaml
+*   Needs two accounts, both with S3 and Swift keys
+*   Main user credentials go under MAIN USER
+*   The second user credentials go under SECOND USER
+*   Make sure to include the second user's USERNAME
+
+---
+
+## TESTS ##
+
+### basic-sanity.py ###
+
 Test basic operations between Swift and S3, ie:
-    Creating buckets/objects
-    Deleting buckets/objects
-    Listing buckets/objects
-    Copying objects
-    Sizes of objects
-    Checksums of objects
-    Bucket size accounting
+*   Creating buckets/objects
+*   Deleting buckets/objects
+*   Listing buckets/objects
+*   Copying objects
+*   Sizes of objects
+*   Checksums of objects
+*   Bucket size accounting
 
 
-perms.py:
+### perms.py ###
+
 Test different permissions across Swift and S3, ie:
-    Read objects using a variety of Swift/S3 permissions
-        and accounts
-    Create/Delete objects using a variety of Swift/S3 permissions
-        and accounts
-    List objects using a variety of Swift/S3 permissions
-        and accounts
+*   Read objects using a variety of Swift/S3 permissions and accounts
+*   Create/Delete objects using a variety of Swift/S3 permissions and accounts
+*   List objects using a variety of Swift/S3 permissions and accounts
 
+---
 
-To run tests:
-
--Modify and rename sample_config.yaml to config.yaml
-
--Needs two accounts, both with S3 and Swift keys
-
--Main user credentials go under MAIN USER
-
--The second user credentials go under SECOND USER
-
--Make sure to include the second user's USERNAME
-
-
-NOTES:
+## NOTES ##
 
 ETAG header using S3 API has weird formatting compared to Swift API
     eg. '"md5hash"' (S3) vs 'md5hash' (Swift)
