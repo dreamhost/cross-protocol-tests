@@ -1,8 +1,7 @@
-# S3/SWIFT CROSS PROTOCOL TESTS FOR [CEPH OBJECT GATEWAY](http://ceph.com/docs/next/radosgw/) #
+## S3/SWIFT CROSS PROTOCOL TESTS FOR [CEPH OBJECT GATEWAY](http://ceph.com/docs/next/radosgw/) ##
 
----
 
-## RUNNING THE TESTS ##
+### RUNNING THE TESTS ###
 
 *   Modify and rename sample_config.yaml to config.yaml
 *   Needs two accounts, both with S3 and Swift keys
@@ -12,9 +11,9 @@
 
 ---
 
-## TESTS ##
+### TESTS ###
 
-### basic-sanity.py ###
+#### basic-sanity.py ####
 
 Test basic operations between Swift and S3, ie:
 *   Creating buckets/objects
@@ -26,7 +25,7 @@ Test basic operations between Swift and S3, ie:
 *   Bucket size accounting
 
 
-### perms.py ###
+#### perms.py ####
 
 Test different permissions across Swift and S3, ie:
 *   Read objects using a variety of Swift/S3 permissions and accounts
@@ -35,7 +34,7 @@ Test different permissions across Swift and S3, ie:
 
 ---
 
-## NOTES ##
+### NOTES ###
 
 ETAG header using S3 API has weird formatting compared to Swift API
     eg. '"md5hash"' (S3) vs 'md5hash' (Swift)
