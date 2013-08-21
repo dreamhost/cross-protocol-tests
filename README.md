@@ -37,42 +37,42 @@ Test different permissions across Swift and S3, ie:
 ### NOTES ###
 
 ETAG header using S3 API has weird formatting compared to Swift API
-    eg. '"md5hash"' (S3) vs 'md5hash' (Swift)
+eg. '"md5hash"' (S3) vs 'md5hash' (Swift)
 
 Permissions in S3:
-    Bucket:
-        Read: Gives user/group permission to list buckets
-        Write: Gives user/group permission to create/delete objects
-    Object:
-        Read: Gives user/group permission to read object
-        (No write permission on objects)
+*   Bucket:
+    *   Read: Gives user/group permission to list buckets
+    *   Write: Gives user/group permission to create/delete objects
+*   Object:
+    *   Read: Gives user/group permission to read object
+    *   (No write permission on objects)
 
 Permissions in Swift:
-    Bucket:
-        Read: Gives user/group permission to read objects in bucket
+*   Bucket:
+    *   Read: Gives user/group permission to read objects in bucket
             (Includes .rlistings, which gives permission to list objects
             in bucket - not available)
-        Write: Gives user/group permission to create/delete objects
-    Object:
-        (No object permissions)
+    *   Write: Gives user/group permission to create/delete objects
+*   Object:
+    *   (No object permissions)
 
 Swift ACLs:
-    Cannot create containers with custom ACL using a PUT request,
+*   Cannot create containers with custom ACL using a PUT request,
         must use a POST request updating the ACL after the container
         is created
 
 "Unauthorized user" using HTTPConnection:
-    Using the path /gateway/swift/bucket/object is the same as
+*   Using the path /gateway/swift/bucket/object is the same as
         using the path /gateway/bucket/object
-    Responses return appropriately (using the Swift path returns
+*   Responses return appropriately (using the Swift path returns
         a Swift response and vice versa)
 
 Swift Public Write Containers:
-    Changing the S3 bucket permissions overrides the Swift
+*   Changing the S3 bucket permissions overrides the Swift
         public write permission
 
 Custom Object metadata:
-    Updating object custom metadata using Swift/S3 will overwrite any
+*   Updating object custom metadata using Swift/S3 will overwrite any
         existing custom metadata
-    Object custom metadata can be updated with the header
+*   Object custom metadata can be updated with the header
         'x-container-meta-{key}' which shouldn't be allowed
