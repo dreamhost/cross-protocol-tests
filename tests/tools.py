@@ -1,20 +1,17 @@
-import boto
-import boto.s3.connection
-import boto.s3
-
-from boto.exception import S3ResponseError
-from boto.s3.key import Key
-from boto.s3.acl import Grant
-
-import swiftclient
-
-import yaml
-
 import httplib
 import os.path
 import random
+import string
 import sys
 
+import boto
+import boto.s3.connection
+import boto.s3
+from boto.exception import S3ResponseError
+from boto.s3.key import Key
+from boto.s3.acl import Grant
+import swiftclient
+import yaml
 
 # FROM https://github.com/ceph/swift/blob/master/test/__init__.py
 def get_config():
@@ -73,18 +70,68 @@ def create_valid_name(length=None):
 
 # FROM https://github.com/ceph/swift/blob/master/test/functional/tests.py
 def create_valid_utf8_name(length=None):
-        if length == None:
-            length = 15
-        else:
-            length = int(length)
+    """
+    Create a valid UTF-8 name
+    """
+    if length == None:
+        length = 15
+    else:
+        length = int(length)
+    utf8_chars = u'\uF10F\uD20D\uB30B\u9409\u8508\u5605\u3703\u1801'\
+                 u'\u0900\uF110\uD20E\uB30C\u940A\u8509\u5606\u3704'\
+                 u'\u1802\u0901\uF111\uD20F\uB30D\u940B\u850A\u5607'\
+                 u'\u3705\u1803\u0902\uF112\uD210\uB30E\u940C\u850B'\
+                 u'\u5608\u3706\u1804\u0903\u03A9\u2603'
+    """
+    # Greek letters:
+    utf8_chars = u'\u0388\u0389\u038A\u038C\u038E\u038F\u0380'\
+                 u'\u0390\u0391\u0392\u0393\u0394\u0395\u0396'\
+                 u'\u0397\u0398\u0399\u039A\u039B\u039C\u039D'\
+                 u'\u039E\u039F\u03A0\u03A1\u03A3\u03A4\u03A5'
+    """
+    return ''.join([random.choice(utf8_chars) for x in \
+        xrange(length)]).encode('utf-8')
 
-        utf8_chars = u'\uF10F\uD20D\uB30B\u9409\u8508\u5605\u3703\u1801'\
-                     u'\u0900\uF110\uD20E\uB30C\u940A\u8509\u5606\u3704'\
-                     u'\u1802\u0901\uF111\uD20F\uB30D\u940B\u850A\u5607'\
-                     u'\u3705\u1803\u0902\uF112\uD210\uB30E\u940C\u850B'\
-                     u'\u5608\u3706\u1804\u0903\u03A9\u2603'
-        return ''.join([random.choice(utf8_chars) for x in \
-            xrange(length)]).encode('utf-8')
+
+def delete_buckets(main=True):
+    """
+    Delete all objects and buckets from the acount
+    """
+    # Delete everything from main account
+    if main:
+        swiftconn = get_swiftconn()
+        for container in swiftconn.list_containers():
+            objects = swiftconn.list_objects(container)
+            for name in objects:
+                swiftconn.delete_object(container, name)
+            swiftconn.delete_container(container)
+    # Delete everything from second account
+    else:   
+        swiftuser = get_swiftuser()
+        for container in swiftuser.list_containers():
+            objects = swiftuser.list_objects(container)
+            for name in objects:
+                swiftuser.delete_object(container, name)
+            swiftuser.delete_container(container)
+    
+    # Does not work with boto, no idea why
+    """
+    s3conn = get_s3conn()
+    for bucket in s3conn.list_buckets():
+        b = s3conn.get_bucket(bucket)
+        keys = b.list()
+        for key in keys:
+            key.delete()
+        s3conn.delete_bucket(bucket)
+    """
+
+
+def generate_random_string(length=8):
+    """
+    Create random string for custom object metadata
+    """
+    return ''.join(random.choice(string.ascii_lowercase + string.digits)
+                   for x in range(length))
 
 
 class S3Conn(boto.s3.connection.S3Connection):
@@ -128,17 +175,19 @@ class S3Conn(boto.s3.connection.S3Connection):
         return list_of_buckets
 
     def list_objects(self, bucket, prefix=None, delimiter=None):
-        # PREFIX should be of the form 'folder/subfolder/''
+        # PREFIX should be of the form 'folder/subfolder/'
         # Returns a list of objects in a bucket
         bucket = self.get_bucket(bucket)
         if prefix:
-            list_of_keys = [key.name for key in bucket.list(prefix, delimiter)]
+            list_of_keys = [(key.name).encode('utf-8') for key
+                            in bucket.list(prefix, delimiter=delimiter)]
             return list_of_keys
-        list_of_objects = [key.name for key in bucket.list(delimiter=delimiter)]
+        list_of_objects = [(key.name).encode('utf-8') for key
+                           in bucket.list(delimiter=delimiter)]
         return list_of_objects
 
     def get_contents(self, bucket, objectname):
-        # Return object contents
+        # Returns object content
         resp = self.make_request('GET', bucket, objectname)
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read())
@@ -179,35 +228,18 @@ class S3Conn(boto.s3.connection.S3Connection):
         k.set_contents_from_string(data)
         """
 
-    def post_account(self, headers=None):
-        # Unnecessary?
-        resp = self.make_request('POST', headers=headers)
-        if resp.status < 200 or resp.status >= 300:
-            raise S3ResponseError(resp.status, resp.reason, resp.read())
-
-    def post_bucket(self, bucket, headers=None):
-        # Unnecessary?
-        resp = self.make_request('POST', bucket, headers=headers)
-        if resp.status < 200 or resp.status >= 300:
-            raise S3ResponseError(resp.status, resp.reason, resp.read())
-
-    def post_object(self, bucket, objectname, headers=None):
-        # Post object with headers
-        resp = self.make_request('POST', bucket, objectname, headers=headers)
-        if resp.status < 200 or resp.status >= 300:
-            raise S3ResponseError(resp.status, resp.reason, resp.read())
-
-    def add_metadata(self, bucket, objectname, key_value_pairs):
+    def add_custom_metadata(self, bucket, objectname, key_value_pairs):
+        # Adds custom metadata to object
         headers = {}
         for pair in key_value_pairs:
             key, value = pair
-            headers['x-amz-meta-'+key] = value
+            headers['x-amz-meta-' + key] = value
         resp = self.make_request('PUT', bucket, objectname, headers=headers)
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read())
 
-    def list_metadata(self, bucket, objectname):
-        # Returns list of custom metadata
+    def list_custom_metadata(self, bucket, objectname):
+        # Returns a list of custom metadata
         resp = self.make_request('HEAD', bucket, objectname)
         if resp.status < 200 or resp.status >= 300:
             raise S3ResponseError(resp.status, resp.reason, resp.read())
@@ -229,8 +261,8 @@ class S3Conn(boto.s3.connection.S3Connection):
         return b.get_acl()
 
     def add_public_acl(self, permission, bucket, objectname=None):
-        # Add a public (Group) ACL to the bucket or file
-        # Returns the ACL of the bucket or file
+        # Adds a public (Group) ACL to the bucket or file, then
+        # returns the ACL of the bucket or file
         grant = Grant(permission=permission, type='Group',
                       uri='http://acs.amazonaws.com/groups/global/AllUsers')
         b = self.get_bucket(bucket)
@@ -247,8 +279,8 @@ class S3Conn(boto.s3.connection.S3Connection):
         return b.get_acl()
 
     def add_private_acl(self, permission, username, bucket, objectname=None):
-        # Add a private (CanonicalUser) ACL to the bucket or file
-        # Returns the ACL of the bucket or file
+        # Adds a private (CanonicalUser) ACL to the bucket or file, then
+        # returns the ACL of the bucket or file
         grant = Grant(permission=permission, type='CanonicalUser',
                       id=username, display_name=username)
         b = self.get_bucket(bucket)
@@ -265,8 +297,8 @@ class S3Conn(boto.s3.connection.S3Connection):
         return b.get_acl()
 
     def remove_public_acl(self, permission, bucket, objectname=None):
-        # Remove a public (Group) ACL to the bucket or file
-        # Returns the ACL of the bucket or file
+        # Removes a public (Group) ACL to the bucket or file, then
+        # returns the ACL of the bucket or file
         grant_type = 'Group'
         uri = 'http://acs.amazonaws.com/groups/global/AllUsers'
         b = self.get_bucket(bucket)
@@ -348,7 +380,7 @@ class S3Conn(boto.s3.connection.S3Connection):
                 return x[1][1:-1]
 
     def get_size(self, bucket, objectname=None):
-        # Returns size of bucket or object
+        # Returns size of bucket or object from a HEAD request
         if objectname:
             resp = self.make_request('HEAD', bucket, objectname)
             if resp.status < 200 or resp.status >= 300:
@@ -365,8 +397,8 @@ class S3Conn(boto.s3.connection.S3Connection):
                          if header[0] == 'x-rgw-bytes-used'), None))
 
     def put_random_object(self, bucket, objectname):
-        # Create random object with random size
-        # Returns size of object
+        # Creates and uploads a random object with random size, then
+        # returns size of object
         f = open('/dev/urandom', 'r')
         bytes = random.randint(1, 30000)
         data = f.read(bytes)
@@ -432,7 +464,7 @@ class SwiftConn(swiftclient.Connection):
                         contents=None,
                         headers={'x-copy-from': bucket+'/'+objectname})
 
-    def add_metadata(self, bucket, objectname, key_value_pairs):
+    def add_custom_metadata(self, bucket, objectname, key_value_pairs):
         # Add metadata to the object
         headers = {}
         for pair in key_value_pairs:
@@ -440,7 +472,7 @@ class SwiftConn(swiftclient.Connection):
             headers['x-object-meta-'+key] = value
         self.post_object(bucket, objectname, headers=headers)
 
-    def list_metadata(self, bucket, objectname):
+    def list_custom_metadata(self, bucket, objectname):
         # Returns list of custom metadata
         headers = self.head_object(bucket, objectname)
         metadata = []
