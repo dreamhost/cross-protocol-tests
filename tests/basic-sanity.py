@@ -472,10 +472,10 @@ class TestBasicCrossProtocolOperations():
         swiftconn = get_swiftconn()
         swiftconn.put_container(bucket)
         swiftconn.put_object(bucket, objectname, text)
-        # Create a random number of metadata tags using S3
-        num_files = random.randint(1, 10)
+        # Create a random number of metadata tags using Swift
+        num_metadata = random.randint(1, 10)
         metadata = []
-        for i in range(num_files):
+        for i in range(num_metadata):
             key = generate_random_string()
             value = generate_random_string()
             metadata += [(key, value)]
@@ -495,9 +495,9 @@ class TestBasicCrossProtocolOperations():
         s3conn.put_bucket(bucket)
         s3conn.put_object(bucket, objectname, text)
         # Create a random number of metadata tags using S3
-        num_files = random.randint(1, 10)
+        num_metadata = random.randint(1, 10)
         metadata = []
-        for i in range(num_files):
+        for i in range(num_metadata):
             key = generate_random_string()
             value = generate_random_string()
             metadata += [(key, value)]
@@ -525,9 +525,9 @@ class TestBasicCrossProtocolOperations():
         destination_objectname = self.create_name()
         s3conn.put_random_object(bucket, objectname)
         # Create a random number of metadata tags using S3
-        num_files = random.randint(1, 10)
+        num_metadata = random.randint(1, 10)
         metadata = []
-        for i in range(num_files):
+        for i in range(num_metadata):
             key = generate_random_string()
             value = generate_random_string()
             metadata += [(key, value)]
@@ -555,9 +555,9 @@ class TestBasicCrossProtocolOperations():
         destination_objectname = self.create_name()
         swiftconn.put_random_object(bucket, objectname)
         # Create a random number of metadata tags using Swift
-        num_files = random.randint(1, 10)
+        num_metadata = random.randint(1, 10)
         metadata = []
-        for i in range(num_files):
+        for i in range(num_metadata):
             key = generate_random_string()
             value = generate_random_string()
             metadata += [(key, value)]
