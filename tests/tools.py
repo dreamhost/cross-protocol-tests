@@ -77,18 +77,19 @@ def create_valid_utf8_name(length=None):
         length = 15
     else:
         length = int(length)
+    """
     utf8_chars = u'\uF10F\uD20D\uB30B\u9409\u8508\u5605\u3703\u1801'\
                  u'\u0900\uF110\uD20E\uB30C\u940A\u8509\u5606\u3704'\
                  u'\u1802\u0901\uF111\uD20F\uB30D\u940B\u850A\u5607'\
                  u'\u3705\u1803\u0902\uF112\uD210\uB30E\u940C\u850B'\
                  u'\u5608\u3706\u1804\u0903\u03A9\u2603'
     """
-    # Greek letters:
+    # ALTERNATIVE: Some random Greek letters:
     utf8_chars = u'\u0388\u0389\u038A\u038C\u038E\u038F\u0380'\
                  u'\u0390\u0391\u0392\u0393\u0394\u0395\u0396'\
                  u'\u0397\u0398\u0399\u039A\u039B\u039C\u039D'\
                  u'\u039E\u039F\u03A0\u03A1\u03A3\u03A4\u03A5'
-    """
+    
     return ''.join([random.choice(utf8_chars) for x in \
         xrange(length)]).encode('utf-8')
 
@@ -380,7 +381,7 @@ class S3Conn(boto.s3.connection.S3Connection):
                 return x[1][1:-1]
 
     def get_size(self, bucket, objectname=None):
-        # Returns size of bucket or object from a HEAD request
+        # Returns size of bucket or object
         if objectname:
             resp = self.make_request('HEAD', bucket, objectname)
             if resp.status < 200 or resp.status >= 300:
@@ -398,7 +399,7 @@ class S3Conn(boto.s3.connection.S3Connection):
 
     def put_random_object(self, bucket, objectname):
         # Creates and uploads a random object with random size, then
-        # returns size of object
+        # returns the size of object
         f = open('/dev/urandom', 'r')
         bytes = random.randint(1, 30000)
         data = f.read(bytes)
@@ -439,7 +440,7 @@ class SwiftConn(swiftclient.Connection):
         return self.head_object(container, objectname)['etag']
 
     def get_size(self, container, objectname=None):
-        # Returns bucket or object size
+        # Returns size of bucket or object
         if objectname:
             return int(self.head_object(container, objectname)
                        ['content-length'])
@@ -447,8 +448,8 @@ class SwiftConn(swiftclient.Connection):
         return int(headers['x-container-bytes-used'])
 
     def put_random_object(self, bucket, objectname):
-        # Create random object with random size
-        # Returns size of object
+        # Creates and uploads a random object with random size, then
+        # returns the size of object
         f = open('/dev/urandom', 'r')
         bytes = random.randint(1, 30000)
         data = f.read(bytes)
@@ -519,7 +520,7 @@ class HTTPConn(httplib.HTTPConnection):
         return resp.read()
 
 
-# For more parameters:
+# For more parameters (s3conn):
 # https://github.com/boto/boto/blob/develop/boto/s3/connection.py
 def get_s3conn():
     """
@@ -561,11 +562,11 @@ def get_s3user():
     )
 
 
-# For more parameters:
+# For more parameters (swiftconn):
 # https://github.com/openstack/python-swiftclient/blob/master/swiftclient/client.py
 def get_swiftconn():
     """
-    Return the main user's Swift connection
+    Returns the main user's Swift connection
     """
     conf = get_config()
     swiftkeys = conf['swift']
@@ -579,7 +580,7 @@ def get_swiftconn():
 
 def get_swiftuser():
     """
-    Return the second user's Swift connection
+    Returns the second user's Swift connection
     """
     conf = get_config()
     swiftuser = conf['swiftuser']
@@ -593,7 +594,7 @@ def get_swiftuser():
 
 def get_unauthuser():
     """
-    Return an unauthenticated http connection
+    Returns an unauthenticated http connection
     """
     conf = get_config()
     s3keys = conf['s3']

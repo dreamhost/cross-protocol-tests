@@ -76,3 +76,38 @@ Custom Object metadata:
         existing custom metadata
 *   Object custom metadata can be updated with the header
         'x-container-meta-{key}' which shouldn't be allowed
+
+UTF-8 Encoded Buckets
+*   While Swift allows UTF-8 encoded buckets, S3 does not.
+*   What works so far: listing all buckets (HEAD request)
+*   What doesn't work: Any request involving UTF-8 encoded buckets
+
+Object Headers
+*   CORS:
+    *   access-control-allow-headers
+    *   access-control-max-age
+    *   access-control-allow-credentials
+    *   access-control-allow-origin
+    *   access-control-allow-methods
+*    content-length
+*    accept-ranges
+*    server
+*    last-modified
+*    etag
+*    date
+*    content-type
+
+Bucket Headers
+*   CORS:
+    *   access-control-allow-headers
+    *   access-control-max-age
+    *   access-control-allow-credentials
+    *   access-control-allow-origin
+    *   access-control-allow-methods
+*    date
+*    vary
+*    server
+*    x-pad
+*    content-type
+*    x-rgw-object-count / x-container-object-count
+*    x-rgw-bytes-used / x-container-bytes-used

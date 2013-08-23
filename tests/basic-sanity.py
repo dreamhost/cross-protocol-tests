@@ -637,6 +637,67 @@ class TestBasicCrossProtocolOperations():
 
 
 
-class TestUTF8(TestBasicCrossProtocolOperations):
+class TestUTF8Objects(TestBasicCrossProtocolOperations):
     def create_name(self):
         return create_valid_utf8_name()
+
+class TestUTF8Buckets():
+    # Note: Swift can create UTF-8 encoded buckets
+
+    def create_bucket_name(self):
+        return create_valid_utf8_name()
+
+    def create_name(self):
+        return create_valid_utf8_name()
+        
+    def test_list_container(self):
+        # Delete all buckets
+        delete_buckets()
+        # Create container
+        swiftconn = get_swiftconn()
+        bucket = self.create_bucket_name()
+        swiftconn.put_container(bucket)
+        # Check list containers
+        eq(swiftconn.list_containers(), [bucket])
+        s3conn = get_s3conn()
+        eq(s3conn.list_buckets(), [bucket])
+
+    def test_list_empty_container(self):
+        # Create container
+        bucket = self.create_bucket_name()
+        swiftconn = get_swiftconn()
+        swiftconn.put_container(bucket)
+        # Get list of objects
+        s3conn = get_s3conn()
+        eq(s3conn.list_objects(bucket), [])
+        eq(swiftconn.list_objects(bucket), [])
+        ## DOES NOT WORK
+
+    def test_list_nonempty_container(self):
+        # Create container
+        bucket = self.create_bucket_name()
+        swiftconn = get_swiftconn()
+        swiftconn.put_container(bucket)
+        # Add test object using Swift
+        objectname = self.create_name()
+        text = 'test object text'
+        swiftconn.put_object(bucket, objectname, text)
+        # Get list of objects using S3
+        s3conn = get_s3conn()
+        eq(s3conn.list_objects(bucket), [objectname])
+        ## DOES NOT WORK
+
+    def test_list_object_in_container(self):
+        # Create container using Swift
+        swiftconn = get_swiftconn()
+        bucket = self.create_bucket_name()
+        swiftconn.put_container(bucket)
+        # Create object using S3
+        s3conn = get_s3conn()
+        objectname = self.create_name()
+        text = 'test object text'
+        s3conn.put_object(bucket, objectname, text)
+        # Check list of objects
+        eq(swiftconn.list_objects(bucket), [objectname])
+        eq(s3conn.list_objects(bucket), [objectname])
+        ## DOES NOT WORK
