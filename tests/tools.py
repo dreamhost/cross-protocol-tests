@@ -13,6 +13,7 @@ from boto.s3.acl import Grant
 import swiftclient
 import yaml
 
+
 # FROM https://github.com/ceph/swift/blob/master/test/__init__.py
 def get_config():
     """
@@ -53,7 +54,7 @@ def create_valid_name(length=None):
     """
     Create a valid bucket name usable by both S3 and Swift
     """
-    if length == None:
+    if length is None:
         name_length = 15
     else:
         name_length = random.randint(3, 63)
@@ -73,7 +74,7 @@ def create_valid_utf8_name(length=None):
     """
     Create a valid UTF-8 name
     """
-    if length == None:
+    if length is None:
         length = 15
     else:
         length = int(length)
@@ -89,9 +90,9 @@ def create_valid_utf8_name(length=None):
                  u'\u0390\u0391\u0392\u0393\u0394\u0395\u0396'\
                  u'\u0397\u0398\u0399\u039A\u039B\u039C\u039D'\
                  u'\u039E\u039F\u03A0\u03A1\u03A3\u03A4\u03A5'
-    
-    return ''.join([random.choice(utf8_chars) for x in \
-        xrange(length)]).encode('utf-8')
+
+    return ''.join([random.choice(utf8_chars) for x in
+                    xrange(length)]).encode('utf-8')
 
 
 def delete_buckets(main=True):
@@ -107,14 +108,14 @@ def delete_buckets(main=True):
                 swiftconn.delete_object(container, name)
             swiftconn.delete_container(container)
     # Delete everything from second account
-    else:   
+    else:
         swiftuser = get_swiftuser()
         for container in swiftuser.list_containers():
             objects = swiftuser.list_objects(container)
             for name in objects:
                 swiftuser.delete_object(container, name)
             swiftuser.delete_container(container)
-    
+
     # Does not work with boto, no idea why
     """
     s3conn = get_s3conn()
@@ -411,7 +412,9 @@ class S3Conn(boto.s3.connection.S3Connection):
                     destination_objectname, preserve_acl=False):
         # Copies object from bucket to destination bucket
         b = self.get_bucket(destination_bucket)
-        b.copy_key(destination_objectname, bucket, objectname, preserve_acl=preserve_acl)
+        b.copy_key(destination_objectname, bucket,
+                   objectname, preserve_acl=preserve_acl)
+
 
 class SwiftConn(swiftclient.Connection):
     """

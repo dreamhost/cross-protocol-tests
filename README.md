@@ -36,7 +36,7 @@ Test different permissions across Swift and S3, ie:
 
 ### NOTES ###
 
-ETAG header using S3 API has weird formatting compared to Swift API
+ETAG header using S3 API returns the md5hash in nested quotes:
 eg. '"md5hash"' (S3) vs 'md5hash' (Swift)
 
 Permissions in S3:
@@ -72,10 +72,13 @@ Swift Public Write Containers:
         public write permission
 
 Custom Object metadata:
-*   Updating object custom metadata using Swift/S3 will overwrite any
-        existing custom metadata
+*   Cannot add custom object metadata using a PUT request,
+        must use a POST request updating the metadata after the object
+        is created
 *   Object custom metadata can be updated with the header
         'x-container-meta-{key}' which shouldn't be allowed
+*   Custom metadata can be updated and is preserved
+        in both protocols
 
 UTF-8 Encoded Buckets
 *   While Swift allows UTF-8 encoded buckets, S3 does not.
