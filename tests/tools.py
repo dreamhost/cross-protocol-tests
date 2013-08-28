@@ -78,19 +78,18 @@ def create_valid_utf8_name(length=None):
         length = 15
     else:
         length = int(length)
-    """
     utf8_chars = u'\uF10F\uD20D\uB30B\u9409\u8508\u5605\u3703\u1801'\
                  u'\u0900\uF110\uD20E\uB30C\u940A\u8509\u5606\u3704'\
                  u'\u1802\u0901\uF111\uD20F\uB30D\u940B\u850A\u5607'\
                  u'\u3705\u1803\u0902\uF112\uD210\uB30E\u940C\u850B'\
                  u'\u5608\u3706\u1804\u0903\u03A9\u2603'
     """
-    # ALTERNATIVE: Some random Greek letters:
+    # ALTERNATIVE UTF-8 CHARS (random Greek letters):
     utf8_chars = u'\u0388\u0389\u038A\u038C\u038E\u038F\u0380'\
                  u'\u0390\u0391\u0392\u0393\u0394\u0395\u0396'\
                  u'\u0397\u0398\u0399\u039A\u039B\u039C\u039D'\
                  u'\u039E\u039F\u03A0\u03A1\u03A3\u03A4\u03A5'
-
+    """
     return ''.join([random.choice(utf8_chars) for x in
                     xrange(length)]).encode('utf-8')
 
@@ -116,7 +115,7 @@ def delete_buckets(main=True):
                 swiftuser.delete_object(container, name)
             swiftuser.delete_container(container)
 
-    # Does not work with boto, no idea why
+    # Does not work with boto
     """
     s3conn = get_s3conn()
     for bucket in s3conn.list_buckets():

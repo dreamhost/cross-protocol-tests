@@ -13,14 +13,12 @@ import unittest
 from nose.tools import eq_ as eq
 
 
-# ASSUMPTION: If an unauthorized user can perform a certain request,
-#             any Swift/S3 account on the RadosGW can do the same
-
-
 # USERNAME of the second (non-main) account
 conf = get_config()
 username = conf['username']
 
+
+# Used for setup/teardown functions
 
 def create_swift_container_with_acl(acl_headers):
     # Create Swift container
@@ -58,12 +56,11 @@ def delete_bucket(name):
 # a public container as well as a private container (which the second user has
 # access to)
 class SwiftContainerReadPermissions(object):
+    # NOTE:
     # Swift read permissions allow a group or user to read the objects
-    # container
-
-    # This does not mean that any user can list the objects in a container -
-    # list object permissions can be set by using '.rlistings: username'
-    # which is currently not supported in the RadosGW
+    # container. This does not mean that any user can list the objects in
+    # a container - list object permissions can be set by using
+    # '.rlistings: username' which is currently not supported in the RadosGW
 
     def test_read_default_swift_object(self):
         bucket = self.bucket
@@ -1575,8 +1572,7 @@ class TestPrivateWriteS3Bucket(unittest.TestCase, S3BucketWritePermissions):
 
 
 # Collection of cross bucket write tests that should pass with conflicting
-# public/private bucket write permissions, ie:
-# Swift: public write
+# public/private bucket write permissions, ie: Swift, public write and
 # S3: private write (second user has permission)
 class CrossBucketWritePermissions(object):
     # Test different (conflicting) sets of write permissions between
@@ -1652,6 +1648,7 @@ class TestPrivateWriteSwiftPublicWriteS3(unittest.TestCase,
         self.bucket = create_swift_container_with_acl(
             {'x-container-write': username})
         s3conn = get_s3conn()
+        # Change bucket permissions
         s3conn.add_public_acl('WRITE', self.bucket)
 
     def tearDown(self):
@@ -1719,6 +1716,7 @@ class TestPrivateWriteS3PublicWriteSwift(unittest.TestCase,
         self.bucket = create_swift_container_with_acl(
             {'x-container-write': '.r:*'})
         s3conn = get_s3conn()
+        # Change bucket permission to private write
         s3conn.add_private_acl('WRITE', username, self.bucket)
 
     def tearDown(self):
