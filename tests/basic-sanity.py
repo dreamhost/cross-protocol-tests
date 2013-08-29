@@ -14,6 +14,8 @@ from tools import generate_random_string
 from tools import get_s3conn
 from tools import get_swiftconn
 
+# TEST BASIC CROSS PROTOCOL OPERATIONS:
+
 
 class TestBasicCrossProtocolOperations():
 
@@ -299,7 +301,7 @@ class TestBasicCrossProtocolOperations():
         eq(s3conn.list_objects(bucket), [])
         eq(swiftconn.list_objects(bucket), [])
 
-    # TEST OBJECT COPYING
+    # TEST OBJECT COPYING:
 
     def test_copy_s3_object(self):
         # Create buckets
@@ -369,7 +371,7 @@ class TestBasicCrossProtocolOperations():
         eq(swiftconn.get_contents(bucket, objectname),
            swiftconn.get_contents(destination_bucket, destination_objectname))
 
-    # TEST BUCKET SIZE ACCOUNTING
+    # TEST BUCKET SIZE ACCOUNTING:
 
     def test_size_accounting_s3_objects(self):
         # Create bucket
@@ -450,7 +452,7 @@ class TestBasicCrossProtocolOperations():
         eq(total_size, s3conn.get_size(bucket))
         eq(total_size, swiftconn.get_size(bucket))
 
-    # TEST CUSTOM METADATA
+    # TEST CUSTOM METADATA:
 
     def test_swift_object_custom_metadata(self):
         bucket = self.create_bucket_name()
@@ -496,7 +498,7 @@ class TestBasicCrossProtocolOperations():
         eq(sorted(metadata),
            sorted(s3conn.list_custom_metadata(bucket, objectname)))
 
-    # CHECK IF CUSTOM METADATA IS COPIED CORRECTLY
+    # CHECK IF CUSTOM METADATA IS COPIED CORRECTLY:
 
     def test_copy_swift_object_custom_metadata(self):
         # Create buckets
@@ -523,10 +525,12 @@ class TestBasicCrossProtocolOperations():
         swiftconn.copy_object(bucket, objectname, destination_bucket,
                               destination_objectname)
         # Check metadata
-        eq(sorted(metadata), sorted(swiftconn.list_custom_metadata(destination_bucket,
-                                    destination_objectname)))
-        eq(sorted(metadata), sorted(s3conn.list_custom_metadata(destination_bucket,
-                                    destination_objectname)))
+        eq(sorted(metadata),
+           sorted(swiftconn.list_custom_metadata(destination_bucket,
+                                                 destination_objectname)))
+        eq(sorted(metadata),
+           sorted(s3conn.list_custom_metadata(destination_bucket,
+                                              destination_objectname)))
 
     def test_copy_s3_object_custom_metadata(self):
         # Create containers
@@ -553,10 +557,14 @@ class TestBasicCrossProtocolOperations():
         s3conn.copy_object(bucket, objectname, destination_bucket,
                            destination_objectname)
         # Check metadata
-        eq(sorted(metadata), sorted(swiftconn.list_custom_metadata(destination_bucket,
-                                    destination_objectname)))
-        eq(sorted(metadata), sorted(s3conn.list_custom_metadata(destination_bucket,
-                                    destination_objectname)))
+        eq(sorted(metadata),
+           sorted(swiftconn.list_custom_metadata(destination_bucket,
+                                                 destination_objectname)))
+        eq(sorted(metadata),
+           sorted(s3conn.list_custom_metadata(destination_bucket,
+                                              destination_objectname)))
+
+    # TEST MULTIPART UPLOAD:
 
     def test_s3_multipart_upload(self):
         # Create bucket
@@ -584,10 +592,13 @@ class TestBasicCrossProtocolOperations():
         mp.complete_upload()
 
         swiftconn = get_swiftconn()
-        eq(swiftconn.get_contents(bucket, objectname), s3conn.get_contents(bucket, objectname))
+        eq(swiftconn.get_contents(bucket, objectname),
+           s3conn.get_contents(bucket, objectname))
         eq(swiftconn.list_objects(bucket), s3conn.list_objects(bucket))
-        eq(s3conn.get_md5(bucket, objectname), swiftconn.get_md5(bucket, objectname))
-        eq(s3conn.get_size(bucket, objectname), swiftconn.get_size(bucket, objectname))
+        eq(s3conn.get_md5(bucket, objectname),
+           swiftconn.get_md5(bucket, objectname))
+        eq(s3conn.get_size(bucket, objectname),
+           swiftconn.get_size(bucket, objectname))
 
     # TEST PSEUDO-HIERARCHICAL FOLDERS/DIRECTORIES
 
@@ -605,7 +616,8 @@ class TestBasicCrossProtocolOperations():
         eq(swiftconn.list_objects(bucket), [objectname])
         eq(s3conn.list_objects(bucket), [objectname])
         # Content should be the same
-        eq(s3conn.get_contents(bucket, objectname), swiftconn.get_contents(bucket, objectname))
+        eq(s3conn.get_contents(bucket, objectname),
+           swiftconn.get_contents(bucket, objectname))
 
     def test_swift_folders(self):
         # Create bucket and object using Swift
@@ -621,10 +633,12 @@ class TestBasicCrossProtocolOperations():
         eq(swiftconn.list_objects(bucket), [objectname])
         eq(s3conn.list_objects(bucket), [objectname])
         # Content should be the same
-        eq(s3conn.get_contents(bucket, objectname), swiftconn.get_contents(bucket, objectname))
+        eq(s3conn.get_contents(bucket, objectname),
+           swiftconn.get_contents(bucket, objectname))
 
 
-# TEST UTF-8 ENCODED OBJECT NAMES
+# TEST UTF-8 ENCODED OBJECT NAMES:
+
 class TestUTF8Objects(TestBasicCrossProtocolOperations):
 
     @classmethod
@@ -639,7 +653,8 @@ class TestUTF8Objects(TestBasicCrossProtocolOperations):
         return create_valid_utf8_name()
 
 
-# TEST UTF-8 ENCODED CONTAINER NAMES (SWIFT ONLY)
+# TEST UTF-8 ENCODED CONTAINER NAMES (SWIFT ONLY):
+# SEE README FOR MORE INFORMATION
 class TestUTF8Buckets():
 
     @classmethod
@@ -667,47 +682,3 @@ class TestUTF8Buckets():
         eq(swiftconn.list_containers(), [bucket])
         s3conn = get_s3conn()
         eq(s3conn.list_buckets(), [bucket])
-
-    # Trying to list objects or put objects with UTF-8 encoded containers
-    # returns an HTML response (HAProxy) - 400 Bad Request
-    """
-    def test_list_empty_container(self):
-        # Create container
-        bucket = self.create_bucket_name()
-        swiftconn = get_swiftconn()
-        swiftconn.put_container(bucket)
-        # Get list of objects
-        s3conn = get_s3conn()
-        eq(s3conn.list_objects(bucket), [])
-        eq(swiftconn.list_objects(bucket), [])
-        ## DOES NOT WORK
-
-    def test_list_nonempty_container(self):
-        # Create container
-        bucket = self.create_bucket_name()
-        swiftconn = get_swiftconn()
-        swiftconn.put_container(bucket)
-        # Add test object using Swift
-        objectname = self.create_name()
-        text = 'test object text'
-        swiftconn.put_object(bucket, objectname, text)
-        # Get list of objects using S3
-        s3conn = get_s3conn()
-        eq(s3conn.list_objects(bucket), [objectname])
-        ## DOES NOT WORK
-
-    def test_list_object_in_container(self):
-        # Create container using Swift
-        swiftconn = get_swiftconn()
-        bucket = self.create_bucket_name()
-        swiftconn.put_container(bucket)
-        # Create object using S3
-        s3conn = get_s3conn()
-        objectname = self.create_name()
-        text = 'test object text'
-        s3conn.put_object(bucket, objectname, text)
-        # Check list of objects
-        eq(swiftconn.list_objects(bucket), [objectname])
-        eq(s3conn.list_objects(bucket), [objectname])
-        ## DOES NOT WORK
-    """

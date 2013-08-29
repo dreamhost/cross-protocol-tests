@@ -28,48 +28,19 @@ Test basic operations between Swift and S3, ie:
 #### perms.py ####
 
 Test different permissions across Swift and S3, ie:
-*   Read objects using a variety of Swift/S3 permissions and accounts
-*   Create/Delete objects using a variety of Swift/S3 permissions and accounts
-*   List objects using a variety of Swift/S3 permissions and accounts
+*   Test conflicting S3 and Swift bucket permissions
+*   Read, create, delete, and list objects using a second user and
+        unauthorized user
 
 ---
 
 ### NOTES ###
 
+
+#### Headers ####
+
 ETAG header using S3 API returns the md5hash in nested quotes:
 eg. '"md5hash"' (S3) vs 'md5hash' (Swift)
-
-Permissions in S3:
-*   Bucket:
-    *   Read: Gives user/group permission to list buckets
-    *   Write: Gives user/group permission to create/delete objects
-*   Object:
-    *   Read: Gives user/group permission to read object
-    *   (No write permission on objects)
-
-Permissions in Swift:
-*   Bucket:
-    *   Read: Gives user/group permission to read objects in bucket
-            (Includes .rlistings, which gives permission to list objects
-            in bucket - not available)
-    *   Write: Gives user/group permission to create/delete objects
-*   Object:
-    *   (No object permissions)
-
-Swift ACLs:
-*   Cannot create containers with custom ACL using a PUT request,
-        must use a POST request updating the ACL after the container
-        is created
-
-"Unauthorized user" using HTTPConnection:
-*   Using the path /gateway/swift/bucket/object is the same as
-        using the path /gateway/bucket/object
-*   Responses return appropriately (using the Swift path returns
-        a Swift response and vice versa)
-
-Swift Public Write Containers:
-*   Changing the S3 bucket permissions overrides the Swift
-        public write permission
 
 Custom Object metadata:
 *   Cannot add custom object metadata using a PUT request,
@@ -80,10 +51,11 @@ Custom Object metadata:
 *   Custom metadata can be updated and is preserved
         in both protocols
 
-UTF-8 Encoded Buckets
-*   While Swift allows UTF-8 encoded buckets, S3 does not.
-*   What works so far: listing all buckets (HEAD request)
-*   What doesn't work: Any request involving UTF-8 encoded buckets
+"Unauthorized user" using HTTPConnection:
+*   Using the path /gateway/swift/bucket/object is the same as
+        using the path /gateway/bucket/object
+*   Responses return appropriately (using the Swift path returns
+        a Swift response and vice versa)
 
 Object Headers
 *   CORS:
@@ -114,3 +86,42 @@ Bucket Headers
 *    content-type
 *    x-rgw-object-count / x-container-object-count
 *    x-rgw-bytes-used / x-container-bytes-used
+
+#### Permissions ####
+
+Permissions in S3:
+*   Bucket:
+    *   Read: Gives user/group permission to list buckets
+    *   Write: Gives user/group permission to create/delete objects
+*   Object:
+    *   Read: Gives user/group permission to read object
+    *   (No write permission on objects)
+
+Permissions in Swift:
+*   Bucket:
+    *   Read: Gives user/group permission to read objects in bucket
+            (Includes .rlistings, which gives permission to list objects
+            in bucket - not available)
+    *   Write: Gives user/group permission to create/delete objects
+*   Object:
+    *   (No object permissions)
+
+Swift ACLs:
+*   Cannot create containers with custom ACL using a PUT request,
+        must use a POST request updating the ACL after the container
+        is created
+
+Swift Public Write Containers:
+*   Changing the S3 bucket permissions overrides the Swift
+        public write permission
+
+#### UTF-8 ####
+
+UTF-8 Encoded Buckets
+*   While Swift allows UTF-8 encoded buckets, S3 does not.
+*   What works so far: listing all buckets (HEAD account request)
+*   What doesn't work: Any request involving UTF-8 encoded buckets:
+        returns an HTML response (HAProxy) - 400 Bad Request
+    *   Listing container objects
+    *   Creating objects
+    *   Deleting the container

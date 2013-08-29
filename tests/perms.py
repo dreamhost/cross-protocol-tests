@@ -52,15 +52,11 @@ def delete_bucket(name):
     s3conn.delete_bucket(bucket)
 
 
-# Collection of swift container read tests that should pass with both
-# a public container as well as a private container (which the second user has
-# access to)
+# These classes are meant to be inherited with different
+# setUp and tearDown cases - nosetests will not run them
+
+
 class SwiftContainerReadPermissions(object):
-    # NOTE:
-    # Swift read permissions allow a group or user to read the objects
-    # container. This does not mean that any user can list the objects in
-    # a container - list object permissions can be set by using
-    # '.rlistings: username' which is currently not supported in the RadosGW
 
     def test_read_default_swift_object(self):
         bucket = self.bucket
@@ -149,6 +145,465 @@ class SwiftContainerReadPermissions(object):
         # Read object using Swift (second user)
         swiftuser = get_swiftuser()
         eq(swiftuser.get_contents(bucket, objectname), text)
+
+
+class SwiftContainerWritePermissions(object):
+
+    def test_create_default_swift_object(self):
+        bucket = self.bucket
+        objectname = 'default-swift-object'
+        text = 'default swift object'
+        # Create Swift object with second user
+        swiftuser = get_swiftuser()
+        swiftuser.put_object(bucket, objectname, text)
+        # Check that it was created
+        eq(swiftuser.get_contents(bucket, objectname), text)
+        # Delete with Swift
+        swiftconn = get_swiftconn()
+        swiftconn.delete_object(bucket, objectname)
+        # Check that it was deleted
+        eq(swiftconn.list_objects(bucket), [])
+
+        # Create Swift object with second user
+        swiftuser.put_object(bucket, objectname, text)
+        # Check that it was created
+        eq(swiftuser.get_contents(bucket, objectname), text)
+        # Delete with S3
+        s3conn = get_s3conn()
+        s3conn.delete_object(bucket, objectname)
+        # Check that bucket is empty
+        eq(s3conn.list_objects(bucket), [])
+
+    def test_create_default_s3_object(self):
+        bucket = self.bucket
+        objectname = 'default-s3-object'
+        text = 'default s3 object'
+        # Create S3 object with second user
+        s3user = get_s3user()
+        s3user.put_object(bucket, objectname, text)
+        # Check that it was created
+        eq(s3user.get_contents(bucket, objectname), text)
+        # Delete with Swift
+        swiftconn = get_swiftconn()
+        swiftconn.delete_object(bucket, objectname)
+        # Check that it was deleted
+        eq(swiftconn.list_objects(bucket), [])
+
+        # Create S3 object with second user
+        s3user.put_object(bucket, objectname, text)
+        # Check that it was created
+        eq(s3user.get_contents(bucket, objectname), text)
+        # Delete with S3
+        s3conn = get_s3conn()
+        s3conn.delete_object(bucket, objectname)
+        # Check that bucket is empty
+        eq(s3conn.list_objects(bucket), [])
+
+    def test_delete_default_swift_object(self):
+        # Create Swift object (main user)
+        bucket = self.bucket
+        objectname = 'default-swift-object'
+        text = 'default swift object'
+        swiftconn = get_swiftconn()
+        swiftconn.put_object(bucket, objectname, text)
+        # Delete object with Swift second user
+        swiftuser = get_swiftuser()
+        swiftuser.delete_object(bucket, objectname)
+        # Check that container is empty
+        eq(swiftconn.list_objects(bucket), [])
+
+        # Create Swift object (main user)
+        swiftconn.put_object(bucket, objectname, text)
+        # Delete object with S3 second user
+        s3user = get_s3user()
+        s3user.delete_object(bucket, objectname)
+        # Check that bucket is empty
+        eq(swiftconn.list_objects(bucket), [])
+
+    def test_delete_default_s3_object(self):
+        bucket = self.bucket
+        objectname = 'default-s3-object'
+        text = 'default s3 object'
+        # Create S3 object (main user)
+        s3conn = get_s3conn()
+        s3conn.put_object(bucket, objectname, text)
+        # Delete object with Swift second user
+        swiftuser = get_swiftuser()
+        swiftuser.delete_object(bucket, objectname)
+        # Check that container is empty
+        eq(s3conn.list_objects(bucket), [])
+
+        # Create S3 object (main user)
+        s3conn.put_object(bucket, objectname, text)
+        # Delete object with S3 second user
+        s3user = get_s3user()
+        s3user.delete_object(bucket, objectname)
+        # Check that bucket is empty
+        eq(s3conn.list_objects(bucket), [])
+
+    def test_delete_public_read_s3_object(self):
+        bucket = self.bucket
+        objectname = 'public-read-s3-object'
+        text = 'public read s3 object'
+        # Create S3 object (main user)
+        s3conn = get_s3conn()
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_public_acl('READ', bucket, objectname)
+        # Delete object with Swift second user
+        swiftuser = get_swiftuser()
+        swiftuser.delete_object(bucket, objectname)
+        # Check that container is empty
+        eq(s3conn.list_objects(bucket), [])
+
+        # Create S3 object (main user)
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_public_acl('READ', bucket, objectname)
+        # Delete object with S3 second user
+        s3user = get_s3user()
+        s3user.delete_object(bucket, objectname)
+        # Check that bucket is empty
+        eq(s3conn.list_objects(bucket), [])
+
+    def test_delete_private_read_s3_object(self):
+        bucket = self.bucket
+        objectname = 'private-read-s3-object'
+        text = 'private read s3 object'
+        # Create S3 object (main user)
+        s3conn = get_s3conn()
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_private_acl('READ', username, bucket, objectname)
+        # Delete object with Swift second user
+        swiftuser = get_swiftuser()
+        swiftuser.delete_object(bucket, objectname)
+        # Check that container is empty
+        eq(s3conn.list_objects(bucket), [])
+
+        # Create S3 object (main user)
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_private_acl('READ', username, bucket, objectname)
+        # Delete object with S3 second user
+        s3user = get_s3user()
+        s3user.delete_object(bucket, objectname)
+        # Check that bucket is empty
+        eq(s3conn.list_objects(bucket), [])
+
+    def test_delete_public_full_control_s3_object(self):
+        bucket = self.bucket
+        objectname = 'public-full-control-s3-object'
+        text = 'public full control s3 object'
+        # Create S3 object (main user)
+        s3conn = get_s3conn()
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_public_acl('FULL_CONTROL', bucket, objectname)
+        # Delete object with Swift second user
+        swiftuser = get_swiftuser()
+        swiftuser.delete_object(bucket, objectname)
+        # Check that container is empty
+        eq(s3conn.list_objects(bucket), [])
+
+        # Create S3 object (main user)
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_public_acl('FULL_CONTROL', bucket, objectname)
+        # Delete object with S3 second user
+        s3user = get_s3user()
+        s3user.delete_object(bucket, objectname)
+        # Check that bucket is empty
+        eq(s3conn.list_objects(bucket), [])
+
+    def test_delete_private_full_control_s3_object(self):
+        bucket = self.bucket
+        objectname = 'private-full-control-s3-object'
+        text = 'private full control s3 object'
+        # Create S3 object (main user)
+        s3conn = get_s3conn()
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_private_acl('FULL_CONTROL', username, bucket, objectname)
+        # Delete object with Swift second user
+        swiftuser = get_swiftuser()
+        swiftuser.delete_object(bucket, objectname)
+        # Check that container is empty
+        eq(s3conn.list_objects(bucket), [])
+
+        # Create S3 object (main user)
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_private_acl('FULL_CONTROL', username, bucket, objectname)
+        # Delete object with S3 second user
+        s3user = get_s3user()
+        s3user.delete_object(bucket, objectname)
+        # Check that bucket is empty
+        eq(s3conn.list_objects(bucket), [])
+
+
+class S3BucketReadPermissions(object):
+    def test_read_bucket_with_default_swift_object(self):
+        bucket = self.bucket
+        objectname = 'default-swift-object'
+        text = 'default swift object'
+        # Create Swift object (main user)
+        swiftconn = get_swiftconn()
+        swiftconn.put_object(bucket, objectname, text)
+        # List objects using S3 (second user)
+        s3user = get_s3user()
+        eq(s3user.list_objects(bucket), [objectname])
+        # List objects using Swift (second user)
+        swiftuser = get_swiftuser()
+        eq(swiftuser.list_objects(bucket), [objectname])
+
+    def test_read_bucket_with_default_s3_object(self):
+        bucket = self.bucket
+        objectname = 'default-s3-object'
+        text = 'default s3 object'
+        # Create S3 object (main user)
+        s3conn = get_s3conn()
+        s3conn.put_object(bucket, objectname, text)
+        # List objects using S3 (second user)
+        s3user = get_s3user()
+        eq(s3user.list_objects(bucket), [objectname])
+        # List objects using Swift (second user)
+        swiftuser = get_swiftuser()
+        eq(swiftuser.list_objects(bucket), [objectname])
+
+    def test_read_bucket_with_public_read_s3_object(self):
+        bucket = self.bucket
+        objectname = 'public-read-s3-object'
+        text = 'public read s3 object'
+        # Create public read S3 object (main user)
+        s3conn = get_s3conn()
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_public_acl('READ', bucket, objectname)
+        # List objects using S3 (second user)
+        s3user = get_s3user()
+        eq(s3user.list_objects(bucket), [objectname])
+        # List objects using Swift (second user)
+        swiftuser = get_swiftuser()
+        eq(swiftuser.list_objects(bucket), [objectname])
+
+    def test_read_bucket_with_private_read_s3_object(self):
+        bucket = self.bucket
+        objectname = 'private-read-s3-object'
+        text = 'private read s3 object'
+        # Create public read S3 object (main user)
+        s3conn = get_s3conn()
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_private_acl('READ', username, bucket, objectname)
+        # List objects using S3 (second user)
+        s3user = get_s3user()
+        eq(s3user.list_objects(bucket), [objectname])
+        # List objects using Swift (second user)
+        swiftuser = get_swiftuser()
+        eq(swiftuser.list_objects(bucket), [objectname])
+
+    def test_read_bucket_with_public_full_control_s3_object(self):
+        # Create public read S3 object (main user)
+        bucket = self.bucket
+        objectname = 'public-full-control-s3-object'
+        text = 'public full control s3 object'
+        s3conn = get_s3conn()
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_public_acl('FULL_CONTROL', bucket, objectname)
+        # List objects using S3 (second user)
+        s3user = get_s3user()
+        eq(s3user.list_objects(bucket), [objectname])
+        # List objects using Swift (second user)
+        swiftuser = get_swiftuser()
+        eq(swiftuser.list_objects(bucket), [objectname])
+
+    def test_read_bucket_with_private_full_control_s3_object(self):
+        bucket = self.bucket
+        objectname = 'private-full-control-s3-object'
+        text = 'private full control s3 object'
+        # Create public read S3 object (main user)
+        s3conn = get_s3conn()
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_private_acl('FULL_CONTROL', username, bucket, objectname)
+        # List objects using S3 (second user)
+        s3user = get_s3user()
+        eq(s3user.list_objects(bucket), [objectname])
+        # List objects using Swift (second user)
+        swiftuser = get_swiftuser()
+        eq(swiftuser.list_objects(bucket), [objectname])
+
+
+class S3BucketWritePermissions(object):
+    def test_create_default_swift_object(self):
+        bucket = self.bucket
+        objectname = 'default-swift-object'
+        text = 'default swift object'
+        # Create Swift object with second user
+        swiftuser = get_swiftuser()
+        swiftuser.put_object(bucket, objectname, text)
+        # Check that it was created
+        eq(swiftuser.get_contents(bucket, objectname), text)
+        # Delete with Swift
+        swiftconn = get_swiftconn()
+        swiftconn.delete_object(bucket, objectname)
+
+        # Create Swift object with second user
+        swiftuser.put_object(bucket, objectname, text)
+        # Check that it was created
+        eq(swiftuser.get_contents(bucket, objectname), text)
+        # Delete with S3
+        s3conn = get_s3conn()
+        s3conn.delete_object(bucket, objectname)
+
+    def test_create_default_s3_object(self):
+        bucket = self.bucket
+        objectname = 'default-s3-object'
+        text = 'default s3 object'
+        # Create S3 object with second user
+        s3user = get_s3user()
+        s3user.put_object(bucket, objectname, text)
+        # Check that it was created
+        eq(s3user.get_contents(bucket, objectname), text)
+        # Delete with Swift
+        swiftconn = get_swiftconn()
+        swiftconn.delete_object(bucket, objectname)
+
+        # Create S3 object with second user
+        s3user.put_object(bucket, objectname, text)
+        # Check that it was created
+        eq(s3user.get_contents(bucket, objectname), text)
+        # Delete with S3
+        s3conn = get_s3conn()
+        s3conn.delete_object(bucket, objectname)
+
+    def test_delete_default_swift_object(self):
+        # Create Swift object (main user)
+        bucket = self.bucket
+        objectname = 'default-swift-object'
+        text = 'default swift object'
+        swiftconn = get_swiftconn()
+        swiftconn.put_object(bucket, objectname, text)
+        # Delete object with Swift second user
+        swiftuser = get_swiftuser()
+        swiftuser.delete_object(bucket, objectname)
+        # Check that container is empty
+        eq(swiftconn.list_objects(bucket), [])
+
+        # Create Swift object (main user)
+        swiftconn.put_object(bucket, objectname, text)
+        # Delete object with S3 second user
+        s3user = get_s3user()
+        s3user.delete_object(bucket, objectname)
+        # Check that bucket is empty
+        eq(swiftconn.list_objects(bucket), [])
+
+    def test_delete_default_s3_object(self):
+        bucket = self.bucket
+        objectname = 'default-s3-object'
+        text = 'default s3 object'
+        # Create S3 object (main user)
+        s3conn = get_s3conn()
+        s3conn.put_object(bucket, objectname, text)
+        # Delete object with Swift second user
+        swiftuser = get_swiftuser()
+        swiftuser.delete_object(bucket, objectname)
+        # Check that container is empty
+        eq(s3conn.list_objects(bucket), [])
+
+        # Create S3 object (main user)
+        s3conn.put_object(bucket, objectname, text)
+        # Delete object with S3 second user
+        s3user = get_s3user()
+        s3user.delete_object(bucket, objectname)
+        # Check that bucket is empty
+        eq(s3conn.list_objects(bucket), [])
+
+    def test_delete_public_read_s3_object(self):
+        bucket = self.bucket
+        objectname = 'public-read-s3-object'
+        text = 'public read s3 object'
+        # Create S3 object (main user)
+        s3conn = get_s3conn()
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_public_acl('READ', bucket, objectname)
+        # Delete object with Swift second user
+        swiftuser = get_swiftuser()
+        swiftuser.delete_object(bucket, objectname)
+        # Check that container is empty
+        eq(s3conn.list_objects(bucket), [])
+
+        # Create S3 object (main user)
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_public_acl('READ', bucket, objectname)
+        # Delete object with S3 second user
+        s3user = get_s3user()
+        s3user.delete_object(bucket, objectname)
+        # Check that bucket is empty
+        eq(s3conn.list_objects(bucket), [])
+
+    def test_delete_private_read_s3_object(self):
+        bucket = self.bucket
+        objectname = 'private-read-s3-object'
+        text = 'private read s3 object'
+        # Create S3 object (main user)
+        s3conn = get_s3conn()
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_private_acl('READ', username, bucket, objectname)
+        # Delete object with Swift second user
+        swiftuser = get_swiftuser()
+        swiftuser.delete_object(bucket, objectname)
+        # Check that container is empty
+        eq(s3conn.list_objects(bucket), [])
+
+        # Create S3 object (main user)
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_private_acl('READ', username, bucket, objectname)
+        # Delete object with S3 second user
+        s3user = get_s3user()
+        s3user.delete_object(bucket, objectname)
+        # Check that bucket is empty
+        eq(s3conn.list_objects(bucket), [])
+
+    def test_delete_public_full_control_s3_object(self):
+        bucket = self.bucket
+        objectname = 'public-full-control-s3-object'
+        text = 'public full control s3 object'
+        # Create S3 object (main user)
+        s3conn = get_s3conn()
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_public_acl('FULL_CONTROL', bucket, objectname)
+        # Delete object with Swift second user
+        swiftuser = get_swiftuser()
+        swiftuser.delete_object(bucket, objectname)
+        # Check that container is empty
+        eq(s3conn.list_objects(bucket), [])
+
+        # Create S3 object (main user)
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_public_acl('FULL_CONTROL', bucket, objectname)
+        # Delete object with S3 second user
+        s3user = get_s3user()
+        s3user.delete_object(bucket, objectname)
+        # Check that bucket is empty
+        eq(s3conn.list_objects(bucket), [])
+
+    def test_delete_private_full_control_s3_object(self):
+        bucket = self.bucket
+        objectname = 'private-full-control-s3-object'
+        text = 'private full control s3 object'
+        # Create S3 object (main user)
+        s3conn = get_s3conn()
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_private_acl('FULL_CONTROL', username, bucket, objectname)
+        # Delete object with Swift second user
+        swiftuser = get_swiftuser()
+        swiftuser.delete_object(bucket, objectname)
+        # Check that container is empty
+        eq(s3conn.list_objects(bucket), [])
+
+        # Create S3 object (main user)
+        s3conn.put_object(bucket, objectname, text)
+        s3conn.add_private_acl('FULL_CONTROL', username, bucket, objectname)
+        # Delete object with S3 second user
+        s3user = get_s3user()
+        s3user.delete_object(bucket, objectname)
+        # Check that bucket is empty
+        eq(s3conn.list_objects(bucket), [])
+
+
+# These classes will test different permutations of object/bucket
+# permissions and operations
 
 
 class TestPublicReadSwiftContainer(unittest.TestCase,
@@ -453,197 +908,6 @@ class TestPrivateReadSwiftContainer(unittest.TestCase,
                       bucket, objectname)
 
 
-# Collection of swift container write tests that should pass with both
-# a public container as well as a private container (which the second user has
-# access to)
-class SwiftContainerWritePermissions(object):
-    # Swift write permissions allow a group or user to create/delete
-    # objects in the container
-
-    def test_create_default_swift_object(self):
-        bucket = self.bucket
-        objectname = 'default-swift-object'
-        text = 'default swift object'
-        # Create Swift object with second user
-        swiftuser = get_swiftuser()
-        swiftuser.put_object(bucket, objectname, text)
-        # Check that it was created
-        eq(swiftuser.get_contents(bucket, objectname), text)
-        # Delete with Swift
-        swiftconn = get_swiftconn()
-        swiftconn.delete_object(bucket, objectname)
-        # Check that it was deleted
-        eq(swiftconn.list_objects(bucket), [])
-
-        # Create Swift object with second user
-        swiftuser.put_object(bucket, objectname, text)
-        # Check that it was created
-        eq(swiftuser.get_contents(bucket, objectname), text)
-        # Delete with S3
-        s3conn = get_s3conn()
-        s3conn.delete_object(bucket, objectname)
-        # Check that bucket is empty
-        eq(s3conn.list_objects(bucket), [])
-
-    def test_create_default_s3_object(self):
-        bucket = self.bucket
-        objectname = 'default-s3-object'
-        text = 'default s3 object'
-        # Create S3 object with second user
-        s3user = get_s3user()
-        s3user.put_object(bucket, objectname, text)
-        # Check that it was created
-        eq(s3user.get_contents(bucket, objectname), text)
-        # Delete with Swift
-        swiftconn = get_swiftconn()
-        swiftconn.delete_object(bucket, objectname)
-        # Check that it was deleted
-        eq(swiftconn.list_objects(bucket), [])
-
-        # Create S3 object with second user
-        s3user.put_object(bucket, objectname, text)
-        # Check that it was created
-        eq(s3user.get_contents(bucket, objectname), text)
-        # Delete with S3
-        s3conn = get_s3conn()
-        s3conn.delete_object(bucket, objectname)
-        # Check that bucket is empty
-        eq(s3conn.list_objects(bucket), [])
-
-    def test_delete_default_swift_object(self):
-        # Create Swift object (main user)
-        bucket = self.bucket
-        objectname = 'default-swift-object'
-        text = 'default swift object'
-        swiftconn = get_swiftconn()
-        swiftconn.put_object(bucket, objectname, text)
-        # Delete object with Swift second user
-        swiftuser = get_swiftuser()
-        swiftuser.delete_object(bucket, objectname)
-        # Check that container is empty
-        eq(swiftconn.list_objects(bucket), [])
-
-        # Create Swift object (main user)
-        swiftconn.put_object(bucket, objectname, text)
-        # Delete object with S3 second user
-        s3user = get_s3user()
-        s3user.delete_object(bucket, objectname)
-        # Check that bucket is empty
-        eq(swiftconn.list_objects(bucket), [])
-
-    def test_delete_default_s3_object(self):
-        bucket = self.bucket
-        objectname = 'default-s3-object'
-        text = 'default s3 object'
-        # Create S3 object (main user)
-        s3conn = get_s3conn()
-        s3conn.put_object(bucket, objectname, text)
-        # Delete object with Swift second user
-        swiftuser = get_swiftuser()
-        swiftuser.delete_object(bucket, objectname)
-        # Check that container is empty
-        eq(s3conn.list_objects(bucket), [])
-
-        # Create S3 object (main user)
-        s3conn.put_object(bucket, objectname, text)
-        # Delete object with S3 second user
-        s3user = get_s3user()
-        s3user.delete_object(bucket, objectname)
-        # Check that bucket is empty
-        eq(s3conn.list_objects(bucket), [])
-
-    def test_delete_public_read_s3_object(self):
-        bucket = self.bucket
-        objectname = 'public-read-s3-object'
-        text = 'public read s3 object'
-        # Create S3 object (main user)
-        s3conn = get_s3conn()
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_public_acl('READ', bucket, objectname)
-        # Delete object with Swift second user
-        swiftuser = get_swiftuser()
-        swiftuser.delete_object(bucket, objectname)
-        # Check that container is empty
-        eq(s3conn.list_objects(bucket), [])
-
-        # Create S3 object (main user)
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_public_acl('READ', bucket, objectname)
-        # Delete object with S3 second user
-        s3user = get_s3user()
-        s3user.delete_object(bucket, objectname)
-        # Check that bucket is empty
-        eq(s3conn.list_objects(bucket), [])
-
-    def test_delete_private_read_s3_object(self):
-        bucket = self.bucket
-        objectname = 'private-read-s3-object'
-        text = 'private read s3 object'
-        # Create S3 object (main user)
-        s3conn = get_s3conn()
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_private_acl('READ', username, bucket, objectname)
-        # Delete object with Swift second user
-        swiftuser = get_swiftuser()
-        swiftuser.delete_object(bucket, objectname)
-        # Check that container is empty
-        eq(s3conn.list_objects(bucket), [])
-
-        # Create S3 object (main user)
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_private_acl('READ', username, bucket, objectname)
-        # Delete object with S3 second user
-        s3user = get_s3user()
-        s3user.delete_object(bucket, objectname)
-        # Check that bucket is empty
-        eq(s3conn.list_objects(bucket), [])
-
-    def test_delete_public_full_control_s3_object(self):
-        bucket = self.bucket
-        objectname = 'public-full-control-s3-object'
-        text = 'public full control s3 object'
-        # Create S3 object (main user)
-        s3conn = get_s3conn()
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_public_acl('FULL_CONTROL', bucket, objectname)
-        # Delete object with Swift second user
-        swiftuser = get_swiftuser()
-        swiftuser.delete_object(bucket, objectname)
-        # Check that container is empty
-        eq(s3conn.list_objects(bucket), [])
-
-        # Create S3 object (main user)
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_public_acl('FULL_CONTROL', bucket, objectname)
-        # Delete object with S3 second user
-        s3user = get_s3user()
-        s3user.delete_object(bucket, objectname)
-        # Check that bucket is empty
-        eq(s3conn.list_objects(bucket), [])
-
-    def test_delete_private_full_control_s3_object(self):
-        bucket = self.bucket
-        objectname = 'private-full-control-s3-object'
-        text = 'private full control s3 object'
-        # Create S3 object (main user)
-        s3conn = get_s3conn()
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_private_acl('FULL_CONTROL', username, bucket, objectname)
-        # Delete object with Swift second user
-        swiftuser = get_swiftuser()
-        swiftuser.delete_object(bucket, objectname)
-        # Check that container is empty
-        eq(s3conn.list_objects(bucket), [])
-
-        # Create S3 object (main user)
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_private_acl('FULL_CONTROL', username, bucket, objectname)
-        # Delete object with S3 second user
-        s3user = get_s3user()
-        s3user.delete_object(bucket, objectname)
-        # Check that bucket is empty
-        eq(s3conn.list_objects(bucket), [])
-
 
 class TestPublicWriteSwiftContainer(unittest.TestCase,
                                     SwiftContainerWritePermissions):
@@ -761,8 +1025,8 @@ class TestPublicWriteSwiftContainer(unittest.TestCase,
         # Check that bucket is empty
         eq(s3conn.list_objects(bucket), [])
 
-## CHANGING THE S3 BUCKET PERMS (that is, making it have non-default perms)
-## disables swift public write.
+    ## CHANGING THE S3 BUCKET PERMS (that is, making it have non-default perms)
+    ## disables Swift public write.
     def test_unauthuser_create_objects_after_removing_default_perms(self):
         bucket = self.bucket
         objectname = 'default-object'
@@ -776,8 +1040,8 @@ class TestPublicWriteSwiftContainer(unittest.TestCase,
         assert_raises(httplib.HTTPException, unauthuser.put_object,
                       bucket, objectname, text)
 
-## Does changing the perms BACK to default re-enable swift public write?
-## Nope... Swift public write is still disabled
+    ## Does changing the perms BACK to default re-enable swift public write?
+    ## Nope, Swift public write is still disabled
     def test_unauthuser_create_objects_after_reseting_default_perms(self):
         bucket = self.bucket
         objectname = 'default-object'
@@ -789,7 +1053,7 @@ class TestPublicWriteSwiftContainer(unittest.TestCase,
         s3conn.remove_public_acl('READ', bucket)
         # Create object with unauthenticated user
         unauthuser = get_unauthuser()
-        # Fails... QUESTIONABLE BEHAVIOR
+        # Fails: QUESTIONABLE BEHAVIOR
         assert_raises(httplib.HTTPException, unauthuser.put_object,
                       bucket, objectname, text)
 
@@ -896,100 +1160,6 @@ class TestPrivateWriteSwiftContainer(unittest.TestCase,
         # Delete should fail
         assert_raises(httplib.HTTPException, unauthuser.delete_object,
                       bucket, objectname)
-
-
-# Collection of S3 bucket read tests that should pass with both
-# a public container as well as a private container (which the second user has
-# access to)
-class S3BucketReadPermissions(object):
-    # S3 read permissions allow a group or user(s) to list objects in a bucket
-    def test_read_bucket_with_default_swift_object(self):
-        bucket = self.bucket
-        objectname = 'default-swift-object'
-        text = 'default swift object'
-        # Create Swift object (main user)
-        swiftconn = get_swiftconn()
-        swiftconn.put_object(bucket, objectname, text)
-        # List objects using S3 (second user)
-        s3user = get_s3user()
-        eq(s3user.list_objects(bucket), [objectname])
-        # List objects using Swift (second user)
-        swiftuser = get_swiftuser()
-        eq(swiftuser.list_objects(bucket), [objectname])
-
-    def test_read_bucket_with_default_s3_object(self):
-        bucket = self.bucket
-        objectname = 'default-s3-object'
-        text = 'default s3 object'
-        # Create S3 object (main user)
-        s3conn = get_s3conn()
-        s3conn.put_object(bucket, objectname, text)
-        # List objects using S3 (second user)
-        s3user = get_s3user()
-        eq(s3user.list_objects(bucket), [objectname])
-        # List objects using Swift (second user)
-        swiftuser = get_swiftuser()
-        eq(swiftuser.list_objects(bucket), [objectname])
-
-    def test_read_bucket_with_public_read_s3_object(self):
-        bucket = self.bucket
-        objectname = 'public-read-s3-object'
-        text = 'public read s3 object'
-        # Create public read S3 object (main user)
-        s3conn = get_s3conn()
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_public_acl('READ', bucket, objectname)
-        # List objects using S3 (second user)
-        s3user = get_s3user()
-        eq(s3user.list_objects(bucket), [objectname])
-        # List objects using Swift (second user)
-        swiftuser = get_swiftuser()
-        eq(swiftuser.list_objects(bucket), [objectname])
-
-    def test_read_bucket_with_private_read_s3_object(self):
-        bucket = self.bucket
-        objectname = 'private-read-s3-object'
-        text = 'private read s3 object'
-        # Create public read S3 object (main user)
-        s3conn = get_s3conn()
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_private_acl('READ', username, bucket, objectname)
-        # List objects using S3 (second user)
-        s3user = get_s3user()
-        eq(s3user.list_objects(bucket), [objectname])
-        # List objects using Swift (second user)
-        swiftuser = get_swiftuser()
-        eq(swiftuser.list_objects(bucket), [objectname])
-
-    def test_read_bucket_with_public_full_control_s3_object(self):
-        # Create public read S3 object (main user)
-        bucket = self.bucket
-        objectname = 'public-full-control-s3-object'
-        text = 'public full control s3 object'
-        s3conn = get_s3conn()
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_public_acl('FULL_CONTROL', bucket, objectname)
-        # List objects using S3 (second user)
-        s3user = get_s3user()
-        eq(s3user.list_objects(bucket), [objectname])
-        # List objects using Swift (second user)
-        swiftuser = get_swiftuser()
-        eq(swiftuser.list_objects(bucket), [objectname])
-
-    def test_read_bucket_with_private_full_control_s3_object(self):
-        bucket = self.bucket
-        objectname = 'private-full-control-s3-object'
-        text = 'private full control s3 object'
-        # Create public read S3 object (main user)
-        s3conn = get_s3conn()
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_private_acl('FULL_CONTROL', username, bucket, objectname)
-        # List objects using S3 (second user)
-        s3user = get_s3user()
-        eq(s3user.list_objects(bucket), [objectname])
-        # List objects using Swift (second user)
-        swiftuser = get_swiftuser()
-        eq(swiftuser.list_objects(bucket), [objectname])
 
 
 class TestPublicReadS3Bucket(unittest.TestCase, S3BucketReadPermissions):
@@ -1169,189 +1339,6 @@ class TestPrivateReadS3Bucket(unittest.TestCase, S3BucketReadPermissions):
         unauthuser = get_unauthuser()
         assert_raises(httplib.HTTPException, unauthuser.list_objects,
                       bucket)
-
-
-# Collection of S3 bucket write tests that should pass with both
-# a public container as well as a private container (which the second user has
-# access to)
-class S3BucketWritePermissions(object):
-    # S3 bucket write permissions allow a group or user(s) to create/delete
-    # objects in the bucket
-    def test_create_default_swift_object(self):
-        bucket = self.bucket
-        objectname = 'default-swift-object'
-        text = 'default swift object'
-        # Create Swift object with second user
-        swiftuser = get_swiftuser()
-        swiftuser.put_object(bucket, objectname, text)
-        # Check that it was created
-        eq(swiftuser.get_contents(bucket, objectname), text)
-        # Delete with Swift
-        swiftconn = get_swiftconn()
-        swiftconn.delete_object(bucket, objectname)
-
-        # Create Swift object with second user
-        swiftuser.put_object(bucket, objectname, text)
-        # Check that it was created
-        eq(swiftuser.get_contents(bucket, objectname), text)
-        # Delete with S3
-        s3conn = get_s3conn()
-        s3conn.delete_object(bucket, objectname)
-
-    def test_create_default_s3_object(self):
-        bucket = self.bucket
-        objectname = 'default-s3-object'
-        text = 'default s3 object'
-        # Create S3 object with second user
-        s3user = get_s3user()
-        s3user.put_object(bucket, objectname, text)
-        # Check that it was created
-        eq(s3user.get_contents(bucket, objectname), text)
-        # Delete with Swift
-        swiftconn = get_swiftconn()
-        swiftconn.delete_object(bucket, objectname)
-
-        # Create S3 object with second user
-        s3user.put_object(bucket, objectname, text)
-        # Check that it was created
-        eq(s3user.get_contents(bucket, objectname), text)
-        # Delete with S3
-        s3conn = get_s3conn()
-        s3conn.delete_object(bucket, objectname)
-
-    def test_delete_default_swift_object(self):
-        # Create Swift object (main user)
-        bucket = self.bucket
-        objectname = 'default-swift-object'
-        text = 'default swift object'
-        swiftconn = get_swiftconn()
-        swiftconn.put_object(bucket, objectname, text)
-        # Delete object with Swift second user
-        swiftuser = get_swiftuser()
-        swiftuser.delete_object(bucket, objectname)
-        # Check that container is empty
-        eq(swiftconn.list_objects(bucket), [])
-
-        # Create Swift object (main user)
-        swiftconn.put_object(bucket, objectname, text)
-        # Delete object with S3 second user
-        s3user = get_s3user()
-        s3user.delete_object(bucket, objectname)
-        # Check that bucket is empty
-        eq(swiftconn.list_objects(bucket), [])
-
-    def test_delete_default_s3_object(self):
-        bucket = self.bucket
-        objectname = 'default-s3-object'
-        text = 'default s3 object'
-        # Create S3 object (main user)
-        s3conn = get_s3conn()
-        s3conn.put_object(bucket, objectname, text)
-        # Delete object with Swift second user
-        swiftuser = get_swiftuser()
-        swiftuser.delete_object(bucket, objectname)
-        # Check that container is empty
-        eq(s3conn.list_objects(bucket), [])
-
-        # Create S3 object (main user)
-        s3conn.put_object(bucket, objectname, text)
-        # Delete object with S3 second user
-        s3user = get_s3user()
-        s3user.delete_object(bucket, objectname)
-        # Check that bucket is empty
-        eq(s3conn.list_objects(bucket), [])
-
-    def test_delete_public_read_s3_object(self):
-        bucket = self.bucket
-        objectname = 'public-read-s3-object'
-        text = 'public read s3 object'
-        # Create S3 object (main user)
-        s3conn = get_s3conn()
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_public_acl('READ', bucket, objectname)
-        # Delete object with Swift second user
-        swiftuser = get_swiftuser()
-        swiftuser.delete_object(bucket, objectname)
-        # Check that container is empty
-        eq(s3conn.list_objects(bucket), [])
-
-        # Create S3 object (main user)
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_public_acl('READ', bucket, objectname)
-        # Delete object with S3 second user
-        s3user = get_s3user()
-        s3user.delete_object(bucket, objectname)
-        # Check that bucket is empty
-        eq(s3conn.list_objects(bucket), [])
-
-    def test_delete_private_read_s3_object(self):
-        bucket = self.bucket
-        objectname = 'private-read-s3-object'
-        text = 'private read s3 object'
-        # Create S3 object (main user)
-        s3conn = get_s3conn()
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_private_acl('READ', username, bucket, objectname)
-        # Delete object with Swift second user
-        swiftuser = get_swiftuser()
-        swiftuser.delete_object(bucket, objectname)
-        # Check that container is empty
-        eq(s3conn.list_objects(bucket), [])
-
-        # Create S3 object (main user)
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_private_acl('READ', username, bucket, objectname)
-        # Delete object with S3 second user
-        s3user = get_s3user()
-        s3user.delete_object(bucket, objectname)
-        # Check that bucket is empty
-        eq(s3conn.list_objects(bucket), [])
-
-    def test_delete_public_full_control_s3_object(self):
-        bucket = self.bucket
-        objectname = 'public-full-control-s3-object'
-        text = 'public full control s3 object'
-        # Create S3 object (main user)
-        s3conn = get_s3conn()
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_public_acl('FULL_CONTROL', bucket, objectname)
-        # Delete object with Swift second user
-        swiftuser = get_swiftuser()
-        swiftuser.delete_object(bucket, objectname)
-        # Check that container is empty
-        eq(s3conn.list_objects(bucket), [])
-
-        # Create S3 object (main user)
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_public_acl('FULL_CONTROL', bucket, objectname)
-        # Delete object with S3 second user
-        s3user = get_s3user()
-        s3user.delete_object(bucket, objectname)
-        # Check that bucket is empty
-        eq(s3conn.list_objects(bucket), [])
-
-    def test_delete_private_full_control_s3_object(self):
-        bucket = self.bucket
-        objectname = 'private-full-control-s3-object'
-        text = 'private full control s3 object'
-        # Create S3 object (main user)
-        s3conn = get_s3conn()
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_private_acl('FULL_CONTROL', username, bucket, objectname)
-        # Delete object with Swift second user
-        swiftuser = get_swiftuser()
-        swiftuser.delete_object(bucket, objectname)
-        # Check that container is empty
-        eq(s3conn.list_objects(bucket), [])
-
-        # Create S3 object (main user)
-        s3conn.put_object(bucket, objectname, text)
-        s3conn.add_private_acl('FULL_CONTROL', username, bucket, objectname)
-        # Delete object with S3 second user
-        s3user = get_s3user()
-        s3user.delete_object(bucket, objectname)
-        # Check that bucket is empty
-        eq(s3conn.list_objects(bucket), [])
 
 
 class TestPublicWriteS3Bucket(unittest.TestCase, S3BucketWritePermissions):
@@ -1571,12 +1558,11 @@ class TestPrivateWriteS3Bucket(unittest.TestCase, S3BucketWritePermissions):
                       bucket, objectname)
 
 
-# Collection of cross bucket write tests that should pass with conflicting
-# public/private bucket write permissions, ie: Swift, public write and
-# S3: private write (second user has permission)
+# The following classes test conflicted write permissions between
+# S3 and Swift
+
+
 class CrossBucketWritePermissions(object):
-    # Test different (conflicting) sets of write permissions between
-    # Swift and S3 on the same bucket
     def test_create_swift_object(self):
         bucket = self.bucket
         objectname = 'default-swift-object'
@@ -1709,7 +1695,7 @@ class TestPrivateWriteSwiftPublicWriteS3(unittest.TestCase,
 
 class TestPrivateWriteS3PublicWriteSwift(unittest.TestCase,
                                          CrossBucketWritePermissions):
-    # Right now, S3 permissions are overriding Swift permissions...
+    # Right now, S3 permissions are overriding Swift permissions
 
     def setUp(self):
         # Create a Swift public write container
