@@ -758,7 +758,7 @@ class TestPrivateReadSwiftContainer(unittest.TestCase,
                                     SwiftContainerReadPermissions):
 
     def setUp(self):
-        # Create a Swift public read container
+        # Create a Swift private read container
         self.bucket = create_swift_container_with_acl(
             {'x-container-read': username})
 
@@ -1062,7 +1062,7 @@ class TestPrivateWriteSwiftContainer(unittest.TestCase,
                                      SwiftContainerWritePermissions):
 
     def setUp(self):
-        # Create a Swift public write container
+        # Create a Swift private write container
         self.bucket = create_swift_container_with_acl(
             {'x-container-write': username})
 
@@ -1258,7 +1258,7 @@ class TestPublicReadS3Bucket(unittest.TestCase, S3BucketReadPermissions):
 class TestPrivateReadS3Bucket(unittest.TestCase, S3BucketReadPermissions):
 
     def setUp(self):
-        # Create an S3 public read bucket
+        # Create an S3 private read bucket
         self.bucket = create_s3_bucket_with_acl('READ', username)
 
     def tearDown(self):
@@ -1344,7 +1344,7 @@ class TestPrivateReadS3Bucket(unittest.TestCase, S3BucketReadPermissions):
 class TestPublicWriteS3Bucket(unittest.TestCase, S3BucketWritePermissions):
 
     def setUp(self):
-        # Create a Swift public write container
+        # Create a Swift public write bucket
         self.bucket = create_s3_bucket_with_acl('WRITE')
 
     def tearDown(self):
@@ -1459,7 +1459,7 @@ class TestPublicWriteS3Bucket(unittest.TestCase, S3BucketWritePermissions):
 class TestPrivateWriteS3Bucket(unittest.TestCase, S3BucketWritePermissions):
 
     def setUp(self):
-        # Create a S3 private write container
+        # Create a S3 private write bucket
         self.bucket = create_s3_bucket_with_acl('WRITE', username)
 
     def tearDown(self):
